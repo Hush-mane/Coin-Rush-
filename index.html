@@ -1,179 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush</title>
+  <meta charset="UTF-8">
+  <title>CoinRush Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #111, #222);
-      color: white;
+      background: #0d0d0d;
+      color: #fff;
       overflow: hidden;
     }
 
     header {
-      background-color: #1a1a1a;
-      padding: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .balance {
-      font-size: 1.2rem;
+      padding: 20px;
+      text-align: center;
+      background: #111;
+      font-size: 1.5em;
       font-weight: bold;
     }
 
-    .container {
-      padding: 20px;
-    }
-
-    .task-buttons button {
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
       background: #222;
-      color: white;
-      border: 1px solid #555;
+      padding: 10px;
+    }
+
+    .nav button {
+      background: #ffb400;
+      border: none;
       padding: 10px 20px;
-      margin: 5px;
+      border-radius: 8px;
       cursor: pointer;
-      border-radius: 5px;
-      transition: 0.3s;
+      font-weight: bold;
+      color: #000;
     }
 
-    .task-buttons button:hover {
-      background: #333;
-    }
-
-    canvas {
-      position: absolute;
-      top: 120px;
-      left: 0;
-      width: 100%;
-      height: calc(100% - 120px);
-      z-index: 0;
-    }
-
-    .message {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 0, 0, 0.8);
-      padding: 20px;
-      border-radius: 10px;
-      font-size: 20px;
+    .screen {
       display: none;
+      height: calc(100vh - 100px);
+      position: relative;
+    }
+
+    #game {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: #1a1a1a;
+    }
+
+    #play-area {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      border-top: 2px solid #333;
+    }
+
+    .coin, .bomb {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background-size: cover;
+      cursor: pointer;
+      animation: fall 3s linear forwards;
+    }
+
+    .coin {
+      background-image: url('https://i.imgur.com/dzJiG5e.png');
+    }
+
+    .bomb {
+      background-image: url('https://i.imgur.com/UuQ7rUI.png');
+    }
+
+    @keyframes fall {
+      0% { top: -50px; }
+      100% { top: 100%; }
+    }
+
+    .shake {
+      animation: shake 0.3s;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      50% { transform: translateX(10px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
+
+    .hud {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.2em;
+      background: rgba(0,0,0,0.5);
+      padding: 5px 15px;
+      border-radius: 10px;
+    }
+
+    .timer {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 1.2em;
+      background: rgba(255,255,255,0.1);
+      padding: 5px 15px;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h2>🚀 CoinRush</h2>
-    <div class="balance">Tokens: <span id="tokenCount">0</span></div>
-  </header>
-
-  <div class="container">
-    <div class="task-buttons">
-      <button onclick="window.open('https://t.me/+XBybK8ySpu84ZjM0')">Join Telegram</button>
-      <button onclick="window.open('https://x.com/CRUSH_Tokenn')">Follow on X</button>
-      <button onclick="window.open('https://t.me/yourchannel/1')">Like Telegram Post</button>
-      <button onclick="window.open('https://x.com/yourpost')">Like & Retweet on X</button>
-      <button onclick="window.open('https://t.me/CR_Token_bot')">Refer Friends</button>
-    </div>
+  <header>💰 CoinRush</header>
+  <div class="nav">
+    <button onclick="showScreen('home')">Home</button>
+    <button onclick="showScreen('game')">Play Game</button>
   </div>
 
-  <canvas id="gameCanvas"></canvas>
-  <div class="message" id="blastMsg">💥 You clicked a bomb!</div>
+  <div id="home" class="screen" style="display: block;">
+    <h2 style="text-align:center; margin-top: 100px;">Welcome to CoinRush!</h2>
+    <p style="text-align:center;">Earn tokens by playing, completing tasks and inviting others!</p>
+  </div>
+
+  <div id="game" class="screen">
+    <div class="hud">💰 <span id="coins">0</span></div>
+    <div class="timer">⏳ <span id="timer">30</span>s</div>
+    <div id="play-area"></div>
+  </div>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 120;
+    let coins = 0;
+    let timeLeft = 30;
+    let gameStarted = false;
+    let dailyPlayed = false;
 
-    let tokens = 0;
-    const tokenDisplay = document.getElementById("tokenCount");
-    const blastMsg = document.getElementById("blastMsg");
+    const playArea = document.getElementById('play-area');
+    const coinDisplay = document.getElementById('coins');
+    const timerDisplay = document.getElementById('timer');
 
-    const coins = [];
-    const bombs = [];
-    const radius = 25;
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
 
-    function randomX() {
-      return Math.random() * (canvas.width - 50) + 25;
+      if (id === 'game' && !gameStarted && !dailyPlayed) {
+        startGame();
+      }
     }
 
-    function dropCoin() {
-      coins.push({ x: randomX(), y: 0 });
-    }
+    function startGame() {
+      gameStarted = true;
+      coins = 0;
+      timeLeft = 30;
+      coinDisplay.textContent = coins;
+      timerDisplay.textContent = timeLeft;
 
-    function dropBomb() {
-      bombs.push({ x: randomX(), y: 0 });
-    }
+      const timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = timeLeft;
 
-    setInterval(dropCoin, 1000);
-    setInterval(dropBomb, 5000);
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          gameStarted = false;
+          dailyPlayed = true;
+          alert('Game Over! Come back tomorrow.');
+        }
+      }, 1000);
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw coins
-      coins.forEach((coin, index) => {
-        coin.y += 3;
-        ctx.beginPath();
-        ctx.arc(coin.x, coin.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = "gold";
-        ctx.fill();
-        if (coin.y > canvas.height) coins.splice(index, 1);
-      });
-
-      // Draw bombs
-      bombs.forEach((bomb, index) => {
-        bomb.y += 2.5;
-        ctx.beginPath();
-        ctx.arc(bomb.x, bomb.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = "red";
-        ctx.fill();
-        if (bomb.y > canvas.height) bombs.splice(index, 1);
-      });
-
-      requestAnimationFrame(draw);
-    }
-
-    canvas.addEventListener("click", function (e) {
-      const rect = canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-
-      // Check coins
-      for (let i = 0; i < coins.length; i++) {
-        const c = coins[i];
-        const dist = Math.hypot(c.x - clickX, c.y - clickY);
-        if (dist < radius) {
-          tokens += 5;
-          tokenDisplay.textContent = tokens;
-          coins.splice(i, 1);
+      const spawnInterval = setInterval(() => {
+        if (!gameStarted) {
+          clearInterval(spawnInterval);
           return;
         }
-      }
 
-      // Check bombs
-      for (let i = 0; i < bombs.length; i++) {
-        const b = bombs[i];
-        const dist = Math.hypot(b.x - clickX, b.y - clickY);
-        if (dist < radius) {
-          tokens = 0;
-          tokenDisplay.textContent = tokens;
-          bombs.splice(i, 1);
-          blastMsg.style.display = "block";
-          setTimeout(() => blastMsg.style.display = "none", 1500);
-          return;
-        }
-      }
-    });
+        const item = Math.random() < 0.8 ? 'coin' : 'bomb';
+        const el = document.createElement('div');
+        el.classList.add(item);
+        el.style.left = Math.random() * (window.innerWidth - 50) + 'px';
 
-    draw();
+        el.onclick = () => {
+          if (item === 'coin') {
+            coins++;
+            coinDisplay.textContent = coins;
+          } else {
+            coins = 0;
+            coinDisplay.textContent = coins;
+            document.getElementById('game').classList.add('shake');
+            setTimeout(() => {
+              document.getElementById('game').classList.remove('shake');
+            }, 300);
+          }
+
+          el.remove();
+        };
+
+        playArea.appendChild(el);
+        setTimeout(() => el.remove(), 3000);
+      }, 400); // faster drop
+    }
   </script>
 </body>
 </html>
