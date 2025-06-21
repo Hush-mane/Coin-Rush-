@@ -1,66 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CoinRush</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
-      background-color: #0d1117;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #fff;
       text-align: center;
+      padding: 20px;
     }
-    h2 {
-      margin-bottom: 5px;
+
+    .box {
+      background-color: #222;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 30px;
     }
+
     button {
-      background-color: #00b894;
-      color: white;
-      padding: 12px 20px;
-      font-size: 18px;
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 15px 0;
+      background-color: #fbbf24;
+      color: #111;
       border: none;
-      border-radius: 8px;
-      margin-top: 20px;
+      border-radius: 5px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #019875;
+
+    button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
     }
-    .balance {
-      font-size: 20px;
-      margin-top: 30px;
-      color: #ffeaa7;
+
+    .task {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
-  <h2>Welcome to CoinRush 🚀</h2>
-  <p>Hello, <span id="username">User</span>!</p>
+  <h1>🚀 Welcome to CoinRush</h1>
+  <div class="box">
+    <p id="status">Checking login status...</p>
+    <button id="loginBtn" disabled>Claim Daily Reward</button>
+    <p id="rewardMessage"></p>
 
-  <button onclick="claimReward()">💰 Claim Daily Reward</button>
-
-  <p class="balance">Your Balance: <span id="balance">0</span> CRUSH</p>
+    <div class="task">
+      <h3>🔧 Tasks (Coming Soon)</h3>
+      <ul>
+        <li>Follow our Twitter</li>
+        <li>Join Telegram Group</li>
+        <li>Invite Friends</li>
+      </ul>
+    </div>
+  </div>
 
   <script>
-    // Initialize Telegram WebApp
-    let tg = window.Telegram.WebApp;
-    tg.expand(); // Make app fullscreen
+    const loginBtn = document.getElementById('loginBtn');
+    const status = document.getElementById('status');
+    const rewardMessage = document.getElementById('rewardMessage');
 
-    // Get Telegram user info
-    const user = tg.initDataUnsafe.user;
-    document.getElementById("username").innerText = user?.first_name || "User";
-
-    // Balance simulation
-    let balance = 0;
-
-    function claimReward() {
-      balance += 5;
-      document.getElementById("balance").innerText = balance;
-      alert("✅ You’ve earned +5 CRUSH!");
+    function checkLogin() {
+      const lastLogin = localStorage.getItem('lastLogin');
+      const now = new Date();
+      if (!lastLogin || new Date(lastLogin).toDateString() !== now.toDateString()) {
+        status.textContent = "✅ You haven't claimed your reward today.";
+        loginBtn.disabled = false;
+      } else {
+        status.textContent = "⏳ You already claimed your reward today. Come back tomorrow!";
+        loginBtn.disabled = true;
+      }
     }
+
+    loginBtn.addEventListener('click', () => {
+      const now = new Date();
+      localStorage.setItem('lastLogin', now);
+      rewardMessage.textContent = "🎉 You received 5 CR tokens!";
+      status.textContent = "⏳ You already claimed your reward today. Come back tomorrow!";
+      loginBtn.disabled = true;
+    });
+
+    checkLogin();
   </script>
 </body>
 </html>
