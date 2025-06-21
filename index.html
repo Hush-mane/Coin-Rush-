@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,127 +8,172 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #121212;
-      color: #fff;
+      background: linear-gradient(to bottom, #111, #222);
+      color: white;
+      overflow: hidden;
+    }
+
+    header {
+      background-color: #1a1a1a;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .balance {
+      font-size: 1.2rem;
+      font-weight: bold;
     }
 
     .container {
       padding: 20px;
-      max-width: 500px;
-      margin: auto;
     }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      animation: slideDown 1s ease;
-    }
-
-    .balance {
-      background-color: #1f1f1f;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-weight: bold;
-    }
-
-    h1, h2 {
-      color: #00ffc8;
-    }
-
-    .section {
-      margin-top: 30px;
-    }
-
-    .task-btn, .referral-btn {
-      display: block;
-      width: 100%;
-      margin: 10px 0;
-      padding: 12px;
-      font-size: 16px;
-      background: #232323;
-      border: 1px solid #333;
-      border-radius: 10px;
+    .task-buttons button {
+      background: #222;
       color: white;
+      border: 1px solid #555;
+      padding: 10px 20px;
+      margin: 5px;
       cursor: pointer;
-      transition: background 0.3s, transform 0.3s;
+      border-radius: 5px;
+      transition: 0.3s;
     }
 
-    .task-btn:hover, .referral-btn:hover {
-      background: #00ffc8;
-      color: #000;
-      transform: scale(1.02);
+    .task-buttons button:hover {
+      background: #333;
     }
 
-    .footer {
-      text-align: center;
-      margin-top: 40px;
-      font-size: 12px;
-      color: #888;
+    canvas {
+      position: absolute;
+      top: 120px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 120px);
+      z-index: 0;
     }
 
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .referral-btn {
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 255, 200, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(0, 255, 200, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(0, 255, 200, 0); }
+    .message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 20px;
+      display: none;
     }
   </style>
 </head>
 <body>
+  <header>
+    <h2>🚀 CoinRush</h2>
+    <div class="balance">Tokens: <span id="tokenCount">0</span></div>
+  </header>
+
   <div class="container">
-    <div class="header">
-      <h1>🚀 CoinRush</h1>
-      <div class="balance" id="balance">💰 0 CR</div>
+    <div class="task-buttons">
+      <button onclick="window.open('https://t.me/+XBybK8ySpu84ZjM0')">Join Telegram</button>
+      <button onclick="window.open('https://x.com/CRUSH_Tokenn')">Follow on X</button>
+      <button onclick="window.open('https://t.me/yourchannel/1')">Like Telegram Post</button>
+      <button onclick="window.open('https://x.com/yourpost')">Like & Retweet on X</button>
+      <button onclick="window.open('https://t.me/CR_Token_bot')">Refer Friends</button>
     </div>
-
-    <div class="section">
-      <h2>🎯 Daily Tasks</h2>
-      <button class="task-btn" onclick="completeTask(this, 10)">Follow us on Twitter</button>
-      <button class="task-btn" onclick="completeTask(this, 10)">Join Telegram Group</button>
-      <button class="task-btn" onclick="completeTask(this, 15)">Like & Retweet Post</button>
-      <button class="task-btn" onclick="completeTask(this, 5)">Watch Short Ad</button>
-      <button class="task-btn" onclick="dailyLogin(this)">✅ Daily Login</button>
-    </div>
-
-    <div class="section">
-      <h2>👥 Referral</h2>
-      <p>Invite your friends and earn bonus tokens!</p>
-      <button class="referral-btn" onclick="copyReferral()">📋 Copy Referral Link</button>
-    </div>
-
-    <div class="footer">© 2025 CoinRush | All Rights Reserved</div>
   </div>
 
-  <script>
-    let balance = localStorage.getItem("coinrush_balance") || 0;
-    let lastLogin = localStorage.getItem("last_login") || null;
-    document.getElementById("balance").innerText = `💰 ${balance} CR`;
+  <canvas id="gameCanvas"></canvas>
+  <div class="message" id="blastMsg">💥 You clicked a bomb!</div>
 
-    function completeTask(button, reward) {
-      if (button.disabled) return;
-      balance = parseInt(balance) + reward;
-      localStorage.setItem("coinrush_balance", balance);
-      document.getElementById("balance").innerText = `💰 ${balance} CR`;
-      button.disabled = true;
-      button.innerText += " ✅";
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 120;
+
+    let tokens = 0;
+    const tokenDisplay = document.getElementById("tokenCount");
+    const blastMsg = document.getElementById("blastMsg");
+
+    const coins = [];
+    const bombs = [];
+    const radius = 25;
+
+    function randomX() {
+      return Math.random() * (canvas.width - 50) + 25;
     }
 
-    function dailyLogin(button) {
-      const today = new Date().toDateString();
-      if (lastLogin === today) {
-        alert("You've already claimed today's login bonus!");
-        return;
+    function dropCoin() {
+      coins.push({ x: randomX(), y: 0 });
+    }
+
+    function dropBomb() {
+      bombs.push({ x: randomX(), y: 0 });
+    }
+
+    setInterval(dropCoin, 1000);
+    setInterval(dropBomb, 5000);
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw coins
+      coins.forEach((coin, index) => {
+        coin.y += 3;
+        ctx.beginPath();
+        ctx.arc(coin.x, coin.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "gold";
+        ctx.fill();
+        if (coin.y > canvas.height) coins.splice(index, 1);
+      });
+
+      // Draw bombs
+      bombs.forEach((bomb, index) => {
+        bomb.y += 2.5;
+        ctx.beginPath();
+        ctx.arc(bomb.x, bomb.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        if (bomb.y > canvas.height) bombs.splice(index, 1);
+      });
+
+      requestAnimationFrame(draw);
+    }
+
+    canvas.addEventListener("click", function (e) {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      // Check coins
+      for (let i = 0; i < coins.length; i++) {
+        const c = coins[i];
+        const dist = Math.hypot(c.x - clickX, c.y - clickY);
+        if (dist < radius) {
+          tokens += 5;
+          tokenDisplay.textContent = tokens;
+          coins.splice(i, 1);
+          return;
+        }
       }
-      balance = parseInt(balance) + 20;
-      localStorage.setItem("coinrush_balance", balance);
-      localStorage.setItem("last_login", today);
-      lastLogin = 
+
+      // Check bombs
+      for (let i = 0; i < bombs.length; i++) {
+        const b = bombs[i];
+        const dist = Math.hypot(b.x - clickX, b.y - clickY);
+        if (dist < radius) {
+          tokens = 0;
+          tokenDisplay.textContent = tokens;
+          bombs.splice(i, 1);
+          blastMsg.style.display = "block";
+          setTimeout(() => blastMsg.style.display = "none", 1500);
+          return;
+        }
+      }
+    });
+
+    draw();
+  </script>
+</body>
+</html>
