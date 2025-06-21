@@ -6,86 +6,143 @@
   <title>CoinRush</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #111;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
       color: #fff;
-      text-align: center;
-      padding: 20px;
     }
 
-    .box {
-      background-color: #222;
+    .container {
       padding: 20px;
-      border-radius: 10px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: slideDown 1s ease;
+    }
+
+    .balance {
+      background-color: #1f1f1f;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    h1, h2 {
+      color: #00ffc8;
+    }
+
+    .section {
       margin-top: 30px;
     }
 
-    button {
-      padding: 10px 20px;
+    .task-btn, .referral-btn {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
       font-size: 16px;
-      margin: 15px 0;
-      background-color: #fbbf24;
-      color: #111;
-      border: none;
-      border-radius: 5px;
+      background: #232323;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: white;
       cursor: pointer;
+      transition: background 0.3s, transform 0.3s;
     }
 
-    button:disabled {
-      background-color: #555;
-      cursor: not-allowed;
+    .task-btn:hover, .referral-btn:hover {
+      background: #00ffc8;
+      color: #000;
+      transform: scale(1.02);
     }
 
-    .task {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #aaa;
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .referral-btn {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 255, 200, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 255, 200, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 255, 200, 0); }
     }
   </style>
 </head>
 <body>
-  <h1>🚀 Welcome to CoinRush</h1>
-  <div class="box">
-    <p id="status">Checking login status...</p>
-    <button id="loginBtn" disabled>Claim Daily Reward</button>
-    <p id="rewardMessage"></p>
-
-    <div class="task">
-      <h3>🔧 Tasks (Coming Soon)</h3>
-      <ul>
-        <li>Follow our Twitter</li>
-        <li>Join Telegram Group</li>
-        <li>Invite Friends</li>
-      </ul>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 CoinRush</h1>
+      <div class="balance" id="balance">💰 0 CR</div>
     </div>
+
+    <div class="section">
+      <h2>🎯 Daily Tasks</h2>
+      <button class="task-btn" onclick="completeTask(this, 10)">Follow us on Twitter</button>
+      <button class="task-btn" onclick="completeTask(this, 10)">Join Telegram Group</button>
+      <button class="task-btn" onclick="completeTask(this, 15)">Like & Retweet Post</button>
+      <button class="task-btn" onclick="completeTask(this, 5)">Watch Short Ad</button>
+      <button class="task-btn" onclick="dailyLogin(this)">✅ Daily Login</button>
+    </div>
+
+    <div class="section">
+      <h2>👥 Referral</h2>
+      <p>Invite your friends and earn bonus tokens!</p>
+      <button class="referral-btn" onclick="copyReferral()">📋 Copy Referral Link</button>
+    </div>
+
+    <div class="footer">© 2025 CoinRush | All Rights Reserved</div>
   </div>
 
   <script>
-    const loginBtn = document.getElementById('loginBtn');
-    const status = document.getElementById('status');
-    const rewardMessage = document.getElementById('rewardMessage');
+    let balance = localStorage.getItem("coinrush_balance") || 0;
+    let lastLogin = localStorage.getItem("last_login") || null;
+    document.getElementById("balance").innerText = `💰 ${balance} CR`;
 
-    function checkLogin() {
-      const lastLogin = localStorage.getItem('lastLogin');
-      const now = new Date();
-      if (!lastLogin || new Date(lastLogin).toDateString() !== now.toDateString()) {
-        status.textContent = "✅ You haven't claimed your reward today.";
-        loginBtn.disabled = false;
-      } else {
-        status.textContent = "⏳ You already claimed your reward today. Come back tomorrow!";
-        loginBtn.disabled = true;
-      }
+    function completeTask(button, reward) {
+      if (button.disabled) return;
+      balance = parseInt(balance) + reward;
+      localStorage.setItem("coinrush_balance", balance);
+      document.getElementById("balance").innerText = `💰 ${balance} CR`;
+      button.disabled = true;
+      button.innerText += " ✅";
     }
 
-    loginBtn.addEventListener('click', () => {
-      const now = new Date();
-      localStorage.setItem('lastLogin', now);
-      rewardMessage.textContent = "🎉 You received 5 CR tokens!";
-      status.textContent = "⏳ You already claimed your reward today. Come back tomorrow!";
-      loginBtn.disabled = true;
-    });
+    function dailyLogin(button) {
+      const today = new Date().toDateString();
+      if (lastLogin === today) {
+        alert("You've already claimed today's login bonus!");
+        return;
+      }
+      balance = parseInt(balance) + 20;
+      localStorage.setItem("coinrush_balance", balance);
+      localStorage.setItem("last_login", today);
+      lastLogin = today;
+      document.getElementById("balance").innerText = `💰 ${balance} CR`;
+      button.disabled = true;
+      button.innerText += " ✅";
+    }
 
-    checkLogin();
+    function copyReferral() {
+      const referralLink = "https://t.me/CR_Token_bot/Coinrush?start=ref123";
+      navigator.clipboard.writeText(referralLink).then(() => {
+        alert("Referral link copied to clipboard!");
+      });
+    }
   </script>
 </body>
 </html>
