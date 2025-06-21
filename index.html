@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -131,18 +132,4 @@
       balance = parseInt(balance) + 20;
       localStorage.setItem("coinrush_balance", balance);
       localStorage.setItem("last_login", today);
-      lastLogin = today;
-      document.getElementById("balance").innerText = `💰 ${balance} CR`;
-      button.disabled = true;
-      button.innerText += " ✅";
-    }
-
-    function copyReferral() {
-      const referralLink = "https://t.me/CR_Token_bot/Coinrush?start=ref123";
-      navigator.clipboard.writeText(referralLink).then(() => {
-        alert("Referral link copied to clipboard!");
-      });
-    }
-  </script>
-</body>
-</html>
+      lastLogin = 
