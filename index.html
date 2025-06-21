@@ -1,245 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF‑8" />
-  <meta name="viewport" content="width=device‑width,initial‑scale=1.0"/>
-  <title>CoinRush</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CoinRush Airdrop</title>
   <style>
-    /* Global styles */
     body {
       margin: 0;
-      padding: 0;
-      background: #121212;
+      font-family: Arial, sans-serif;
+      background: #0d0d0d;
       color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
+      text-align: center;
+      padding: 30px;
     }
-    header {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px 20px;
-      background: #1f1f1f;
-      font-size: 18px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+
+    h1 {
+      color: #00ff99;
+      margin-bottom: 10px;
     }
-    header h1 { margin: 0; }
-    .balance {
-      font-weight: bold;
+
+    .wallet {
+      margin: 20px 0;
     }
-    .tabs {
-      display: flex;
-      justify-content: space-around;
-      background: #272727;
-    }
-    .tab-btn {
-      flex: 1;
-      padding: 12px;
-      background: none;
+
+    button {
+      background: #00ff99;
+      color: #000;
+      padding: 12px 20px;
       border: none;
-      color: #fff;
+      border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
+      margin: 10px;
       transition: background 0.3s;
     }
-    .tab-btn:hover, .tab-btn.active {
-      background: #333;
-    }
-    .screen {
-      display: none;
-      position: relative;
-      height: calc(100vh - 106px); /* header + tabs height */
-      width: 100%;
-    }
-    .screen.active {
-      display: block;
+
+    button:hover {
+      background: #00cc77;
     }
 
-    /* Home Screen */
-    #home {
-      padding: 20px;
-      background: #181818;
-    }
     .task-btn {
+      display: block;
       width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: #00aaff;
-      color: #121212;
-      cursor: pointer;
-      transition: transform 0.2s ease, background 0.2s;
-    }
-    .task-btn:hover {
-      transform: scale(1.02);
-      background: #0091cc;
+      max-width: 300px;
+      margin: 10px auto;
     }
 
-    /* Game Screen */
-    #game {
+    .referral {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .address-box {
       background: #111;
-    }
-    canvas {
-      position: absolute;
-      top: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .hud {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      display: flex;
-      gap: 16px;
-      font-size: 16px;
-      background: rgba(0,0,0,0.3);
-      padding: 8px;
-      border-radius: 8px;
-    }
-    .shake {
-      animation: shake 0.4s;
-    }
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      10%,30%,50%,70%,90% { transform: translateX(-8px); }
-      20%,40%,60%,80% { transform: translateX(8px); }
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 5px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>CoinRush</h1>
-    <div class="balance">💰 <span id="balance">0</span> CR</div>
-  </header>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('home')">Home</button>
-    <button class="tab-btn" onclick="switchTab('game')">Play 🎮</button>
+  <h1>🚀 CoinRush Airdrop</h1>
+  <p>Complete tasks, connect your wallet, and earn rewards!</p>
+
+  <div class="wallet">
+    <button onclick="connectWallet()">🔗 Connect Wallet</button>
+    <div id="walletAddress" class="address-box"></div>
   </div>
 
-  <!-- Home Screen -->
-  <div id="home" class="screen active">
-    <div style="padding:20px;">
-      <button class="task-btn" onclick="openLink('https://t.me/+XBybK8ySpu84ZjM0')">Join Telegram Group</button>
-      <button class="task-btn" onclick="openLink('https://x.com/CRUSH_Tokenn')">Follow on X</button>
-      <button class="task-btn" onclick="openLink('https://t.me/yourchannel/1')">Like Telegram Post</button>
-      <button class="task-btn" onclick="openLink('https://x.com/yourpost')">Like & Retweet on X</button>
-      <button class="task-btn" onclick="copyReferral()">Copy Referral Link</button>
-    </div>
+  <div>
+    <button class="task-btn" onclick="window.open('https://t.me/yourgroup', '_blank')">📱 Join Telegram</button>
+    <button class="task-btn" onclick="window.open('https://twitter.com/yourprofile', '_blank')">🐦 Follow on Twitter</button>
+    <button class="task-btn" onclick="window.open('https://t.me/yourchannel/1', '_blank')">❤️ Like Telegram Post</button>
+    <button class="task-btn" onclick="window.open('https://twitter.com/yourprofile/status/123', '_blank')">🔁 Retweet a Post</button>
   </div>
 
-  <!-- Game Screen -->
-  <div id="game" class="screen">
-    <canvas id="gameCanvas"></canvas>
-    <div class="hud">
-      <div>⏳ <span id="timer">30</span>s</div>
-      <div>🪙 <span id="coins">0</span></div>
-    </div>
+  <div>
+    <button onclick="claimReward()">🎁 Claim Reward</button>
   </div>
 
-<script>
-let balance = parseInt(localStorage.getItem('cr_balance')||0);
-let coinsCollected = 0;
-let timer=30, gameActive=false, played=false;
+  <div class="referral">
+    Share this link to invite others:<br>
+    <div class="address-box" id="refLink">Loading...</div>
+    <button onclick="copyReferral()">Copy Referral Link</button>
+  </div>
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight-106; 
-const timerEl = document.getElementById('timer');
-const coinsEl = document.getElementById('coins');
-const balanceEl = document.getElementById('balance');
+  <script>
+    let walletAddress = '';
 
-function switchTab(tab) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(tab).classList.add('active');
-  document.querySelector(`[onclick*="${tab}"]`).classList.add('active');
-  if(tab==='game' && !played) startGame();
-}
-
-// Task linking
-function openLink(url){
-  window.open(url, '_blank');
-}
-
-// Copy referral
-function copyReferral(){
-  const link=`https://t.me/CR_Token_bot/Coinrush?start=ref${Date.now()}`;
-  navigator.clipboard.writeText(link).then(()=>alert('Referral link copied!'));
-}
-
-// Gameplay
-const items=[];
-function spawn(){
-  if(!gameActive) return;
-  const type=Math.random()<0.8?'coin':'bomb';
-  items.push({
-    x:Math.random()*(canvas.width-40), y:-40, type
-  });
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  items.forEach((it,i)=>{
-    it.y += typeSpeed(it.type);
-    ctx.drawImage(getImg(it.type), it.x, it.y,40,40);
-    if(it.y>canvas.height) items.splice(i,1);
-  });
-  requestAnimationFrame(draw);
-}
-
-function typeSpeed(t) {
-  return t==='coin'?Math.random()*4+2:Math.random()*3+2;
-}
-
-const imgCoin=new Image(); imgCoin.src='https://i.imgur.com/dzJiG5e.png';
-const imgBomb=new Image(); imgBomb.src='https://i.imgur.com/UuQ7rUI.png';
-function getImg(t){ return t==='coin'?imgCoin:imgBomb; }
-
-canvas.onclick=(e)=>{
-  if(!gameActive) return;
-  const rx=e.clientX, ry=e.clientY;
-  items.forEach((it,i)=>{
-    if(Math.hypot(it.x+20-rx,it.y+20-ry)<20){
-      if(it.type==='coin'){
-        coinsCollected++;
-        coinsEl.textContent=coinsCollected;
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          walletAddress = accounts[0];
+          document.getElementById("walletAddress").innerText = walletAddress;
+          updateReferral();
+        } catch (err) {
+          alert("Wallet connection failed.");
+        }
       } else {
-        coinsCollected = Math.max(0, coinsCollected-5);
-        coinsEl.textContent=coinsCollected;
-        document.getElementById('game').classList.add('shake');
-        setTimeout(()=>document.getElementById('game').classList.remove('shake'),400);
+        alert("MetaMask is not installed.");
       }
-      items.splice(i,1);
     }
-  });
-}
 
-function startGame(){
-  gameActive=true;
-  coinsCollected=0; timer=30;
-  coinsEl.textContent=0; timerEl.textContent=30;
-  played=true;
-  
-  const spawnInt = setInterval(spawn,300);
-  const tick = setInterval(()=>{
-    timer--;
-    timerEl.textContent=timer;
-    if(timer<=0){
-      clearInterval(tick); clearInterval(spawnInt);
-      gameActive=false;
-      balance += coinsCollected;
-      localStorage.setItem('cr_balance', balance);
-      balanceEl.textContent = balance;
-      alert('Game over! You earned ' + coinsCollected + ' CR');
+    function claimReward() {
+      if (!walletAddress) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+      alert("🎉 Reward claimed for " + walletAddress);
+      // Real logic would go here (API or smart contract)
     }
-  },1000);
-  draw();
-}
 
-balanceEl.textContent = balance;
-</script>
+    function updateReferral() {
+      const ref = `https://your-site.com?ref=${walletAddress}`;
+      document.getElementById("refLink").innerText = ref;
+    }
+
+    function copyReferral() {
+      const ref = document.getElementById("refLink").innerText;
+      navigator.clipboard.writeText(ref);
+      alert("Referral link copied!");
+    }
+  </script>
+
 </body>
 </html>
