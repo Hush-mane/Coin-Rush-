@@ -3,127 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush Airdrop</title>
+  <title>Football Trivia</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0d0d0d;
+      font-family: 'Poppins', sans-serif;
+      background: #101820;
       color: #fff;
       text-align: center;
-      padding: 30px;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #1a2733;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
 
     h1 {
-      color: #00ff99;
+      color: #00ff94;
       margin-bottom: 10px;
     }
 
-    .wallet {
+    .question {
+      font-size: 1.1rem;
       margin: 20px 0;
     }
 
-    button {
-      background: #00ff99;
-      color: #000;
+    .btn {
+      background: #00ff94;
+      color: #101820;
       padding: 12px 20px;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 5px;
+      font-weight: bold;
       cursor: pointer;
-      margin: 10px;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: #00cc77;
-    }
-
-    .task-btn {
-      display: block;
-      width: 100%;
-      max-width: 300px;
-      margin: 10px auto;
-    }
-
-    .referral {
       margin-top: 20px;
-      font-size: 14px;
     }
 
-    .address-box {
-      background: #111;
-      padding: 10px;
-      border-radius: 6px;
-      margin-top: 5px;
+    .btn:hover {
+      background: #00cc74;
+    }
+
+    .wallet {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
-
-  <h1>🚀 CoinRush Airdrop</h1>
-  <p>Complete tasks, connect your wallet, and earn rewards!</p>
-
-  <div class="wallet">
-    <button onclick="connectWallet()">🔗 Connect Wallet</button>
-    <div id="walletAddress" class="address-box"></div>
-  </div>
-
-  <div>
-    <button class="task-btn" onclick="window.open('https://t.me/yourgroup', '_blank')">📱 Join Telegram</button>
-    <button class="task-btn" onclick="window.open('https://twitter.com/yourprofile', '_blank')">🐦 Follow on Twitter</button>
-    <button class="task-btn" onclick="window.open('https://t.me/yourchannel/1', '_blank')">❤️ Like Telegram Post</button>
-    <button class="task-btn" onclick="window.open('https://twitter.com/yourprofile/status/123', '_blank')">🔁 Retweet a Post</button>
-  </div>
-
-  <div>
-    <button onclick="claimReward()">🎁 Claim Reward</button>
-  </div>
-
-  <div class="referral">
-    Share this link to invite others:<br>
-    <div class="address-box" id="refLink">Loading...</div>
-    <button onclick="copyReferral()">Copy Referral Link</button>
+  <div class="container">
+    <h1>⚽ Football Trivia</h1>
+    <div id="quiz">
+      <p class="question">Who won the FIFA World Cup in 2018?</p>
+      <button class="btn" onclick="submitAnswer('France')">France</button><br><br>
+      <button class="btn" onclick="submitAnswer('Brazil')">Brazil</button><br><br>
+      <button class="btn" onclick="submitAnswer('Germany')">Germany</button><br><br>
+      <button class="btn" onclick="submitAnswer('Argentina')">Argentina</button>
+    </div>
+    <p class="wallet" id="walletStatus">🔗 Connect your wallet to start earning</p>
   </div>
 
   <script>
-    let walletAddress = '';
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-    async function connectWallet() {
-      if (window.ethereum) {
-        try {
-          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-          walletAddress = accounts[0];
-          document.getElementById("walletAddress").innerText = walletAddress;
-          updateReferral();
-        } catch (err) {
-          alert("Wallet connection failed.");
-        }
+    function submitAnswer(answer) {
+      if (answer === "France") {
+        alert("🎉 Correct! You've earned 10 points.");
       } else {
-        alert("MetaMask is not installed.");
+        alert("❌ Wrong answer. Try again tomorrow!");
       }
+
+      // Later: Save to backend that this user played today
     }
 
-    function claimReward() {
-      if (!walletAddress) {
-        alert("Please connect your wallet first.");
-        return;
-      }
-      alert("🎉 Reward claimed for " + walletAddress);
-      // Real logic would go here (API or smart contract)
-    }
-
-    function updateReferral() {
-      const ref = `https://your-site.com?ref=${walletAddress}`;
-      document.getElementById("refLink").innerText = ref;
-    }
-
-    function copyReferral() {
-      const ref = document.getElementById("refLink").innerText;
-      navigator.clipboard.writeText(ref);
-      alert("Referral link copied!");
-    }
+    // Later: Add wallet connect logic here
   </script>
-
 </body>
 </html>
