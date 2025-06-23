@@ -3,87 +3,134 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Football Trivia</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <title>CoinRush Airdrop</title>
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
-      background: #101820;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
       margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
     }
 
     .container {
-      max-width: 400px;
-      margin: auto;
-      background: #1a2733;
+      background: rgba(255, 255, 255, 0.05);
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      border-radius: 12px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
     }
 
     h1 {
-      color: #00ff94;
       margin-bottom: 10px;
     }
 
-    .question {
-      font-size: 1.1rem;
+    .username {
+      font-size: 18px;
+      margin: 5px 0;
+    }
+
+    .age {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    .reward-section {
       margin: 20px 0;
     }
 
-    .btn {
-      background: #00ff94;
-      color: #101820;
-      padding: 12px 20px;
+    button {
+      background: #ffae00;
       border: none;
-      border-radius: 5px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      color: #000;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 20px;
+      margin-top: 10px;
     }
 
-    .btn:hover {
-      background: #00cc74;
+    .disabled {
+      background: #888;
+      cursor: not-allowed;
     }
 
-    .wallet {
-      margin-top: 20px;
-      font-size: 0.9rem;
+    .small {
+      font-size: 13px;
       color: #ccc;
+      margin-top: 5px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>⚽ Football Trivia</h1>
-    <div id="quiz">
-      <p class="question">Who won the FIFA World Cup in 2018?</p>
-      <button class="btn" onclick="submitAnswer('France')">France</button><br><br>
-      <button class="btn" onclick="submitAnswer('Brazil')">Brazil</button><br><br>
-      <button class="btn" onclick="submitAnswer('Germany')">Germany</button><br><br>
-      <button class="btn" onclick="submitAnswer('Argentina')">Argentina</button>
+    <h1>🚀 CoinRush Airdrop</h1>
+    <div class="username" id="username">Loading...</div>
+    <div class="age" id="accountAge"></div>
+    <div class="reward-section">
+      <div id="rewardMessage">Checking login status...</div>
+      <button id="claimBtn" class="disabled" disabled>Claim Daily Reward</button>
+      <div class="small" id="cooldownText"></div>
     </div>
-    <p class="wallet" id="walletStatus">🔗 Connect your wallet to start earning</p>
   </div>
 
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    const user = tg.initDataUnsafe?.user;
 
-    function submitAnswer(answer) {
-      if (answer === "France") {
-        alert("🎉 Correct! You've earned 10 points.");
+    const usernameEl = document.getElementById("username");
+    const ageEl = document.getElementById("accountAge");
+    const rewardMsg = document.getElementById("rewardMessage");
+    const claimBtn = document.getElementById("claimBtn");
+    const cooldownText = document.getElementById("cooldownText");
+
+    if (!user) {
+      usernameEl.innerText = "Please open via Telegram";
+    } else {
+      usernameEl.innerText = `👤 @${user.username || 'User #' + user.id}`;
+
+      // Estimate account age from user.id (approx)
+      const telegramEpoch = 1_000_000_000;
+      const currentId = user.id;
+      const estYear = Math.floor((currentId - telegramEpoch) / 15_000_000) + 2014;
+      const yearsOnTelegram = new Date().getFullYear() - estYear;
+      const rewardAmount = 50 + (yearsOnTelegram * 10);
+
+      ageEl.innerText = `📅 Estimated Telegram Usage: ${yearsOnTelegram}+ years`;
+      rewardMsg.innerText = `💰 Daily Reward: ${rewardAmount} $CR`;
+
+      // Check last claim time
+      const lastClaim = localStorage.getItem(`claim_${user.id}`);
+      const now = Date.now();
+
+      if (!lastClaim || now - lastClaim > 24 * 60 * 60 * 1000) {
+        claimBtn.disabled = false;
+        claimBtn.classList.remove("disabled");
+        claimBtn.addEventListener("click", () => {
+          localStorage.setItem(`claim_${user.id}`, Date.now());
+          rewardMsg.innerText = `✅ Claimed ${rewardAmount} $CR! Come back in 24 hours.`;
+          claimBtn.disabled = true;
+          claimBtn.classList.add("disabled");
+          cooldownText.innerText = "⏳ Cooldown active";
+        });
       } else {
-        alert("❌ Wrong answer. Try again tomorrow!");
+        const timeLeft = 24 * 60 * 60 * 1000 - (now - lastClaim);
+        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+        const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        claimBtn.disabled = true;
+        claimBtn.classList.add("disabled");
+        cooldownText.innerText = `⏳ Next claim in ${hours}h ${mins}m`;
       }
-
-      // Later: Save to backend that this user played today
     }
-
-    // Later: Add wallet connect logic here
   </script>
 </body>
 </html>
