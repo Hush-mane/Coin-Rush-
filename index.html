@@ -1,96 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
+  <meta charset="UTF-8">
+  <title>CoinRush Dashboard</title>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Courier New', monospace;
       margin: 0;
-      font-family: 'Orbitron', sans-serif;
-      background: radial-gradient(ellipse at center, #0a0f1c 0%, #000000 100%);
-      color: #00ffcc;
+      padding: 0;
     }
     .container {
       max-width: 500px;
-      margin: 40px auto;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid #30363d;
+      border-radius: 12px;
       padding: 20px;
-      background: rgba(0,255,204,0.05);
-      border: 1px solid #00ffcc30;
-      border-radius: 15px;
-      box-shadow: 0 0 10px #00ffcc40;
-    }
-    .user {
-      text-align: center;
-      font-size: 1.3em;
-      margin-bottom: 20px;
-    }
-    .balance, .level, .referrals {
-      margin: 10px 0;
-      font-size: 1.2em;
+      margin-top: 20px;
+      box-shadow: 0 0 20px rgba(0,255,0,0.1);
     }
     button {
-      width: 100%;
-      padding: 15px;
-      background-color: #00ffcc20;
-      border: 1px solid #00ffcc80;
-      color: #00ffcc;
-      font-size: 1em;
-      border-radius: 10px;
+      background-color: #00ff99;
+      border: none;
+      color: #0d1117;
+      padding: 12px 18px;
+      border-radius: 6px;
       cursor: pointer;
+      font-weight: bold;
     }
     button:hover {
-      background-color: #00ffcc40;
+      background-color: #00cc77;
     }
-    .leaderboard {
-      margin-top: 30px;
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #39ff14;
     }
-    .leaderboard h3 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .leaderboard ul {
+    #leaderboard li {
+      margin: 6px 0;
       list-style: none;
-      padding: 0;
+      font-size: 15px;
     }
-    .leaderboard li {
-      padding: 8px;
-      border-bottom: 1px solid #00ffcc30;
-    }
-    a {
-      color: #00ffff;
-      word-break: break-all;
+    #referral-link {
+      background: none;
+      color: #00ff99;
+      border: 1px solid #00ff99;
+      padding: 8px 12px;
+      margin-top: 10px;
+      display: inline-block;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="user">🚀 Welcome, <span id="username">Loading...</span></div>
-    <div class="balance">Balance: <span id="balance">Loading...</span> $CRT</div>
-    <div class="level">Level: <span id="level">Loading...</span></div>
-    <div class="referrals">Referrals: <span id="referralCount">Loading...</span></div>
-    <button id="mineBtn">⛏️ Mine CRT</button>
-    <p style="text-align:center; margin-top:15px;">
-      Your Referral Link:<br>
-      <a id="refLink" href="#">Generating...</a>
-    </p>
-    <div class="leaderboard">
-      <h3>🏆 Leaderboard</h3>
-      <ul id="leaderboardList"></ul>
+    <div class="card">
+      <div class="title">Welcome, <span id="username">Guest</span></div>
+      <p>Balance: <strong><span id="balance">Loading...</span> CRT</strong></p>
+      <p>Level: <strong><span id="level">1</span></strong></p>
+      <button onclick="mine()">🪙 Mine +10 CRT</button>
+      <br><br>
+      <button onclick="dailyLogin()">🎁 Daily Login</button>
+      <br><br>
+      <button id="referral-link" onclick="copyReferral()">Copy Referral Link</button>
+    </div>
+
+    <div class="card">
+      <div class="title">🏆 Leaderboard</div>
+      <ul id="leaderboard">Loading...</ul>
     </div>
   </div>
 
-  <!-- Firebase + Telegram logic -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
       authDomain: "coinrush-token.firebaseapp.com",
       projectId: "coinrush-token",
-      storageBucket: "coinrush-token.appspot.com",
+      storageBucket: "coinrush-token.firebasestorage.app",
       messagingSenderId: "159731574189",
       appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
       measurementId: "G-ZCMGL2MX3L"
@@ -99,119 +97,95 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Telegram integration
-    let tg = window.Telegram?.WebApp;
-    let userId, userName;
+    let userId = "guest_" + Math.floor(Math.random() * 100000);
+    let username = "Guest";
 
-    if (tg?.initDataUnsafe?.user) {
-      const user = tg.initDataUnsafe.user;
-      userId = `tg_${user.id}`;
-      userName = user.username ? `@${user.username}` : user.first_name;
-    } else {
-      userId = localStorage.getItem("coinrush_user") || "guest_" + Math.random().toString(36).substring(2, 10);
-      localStorage.setItem("coinrush_user", userId);
-      userName = "Guest";
+    if (window.Telegram.WebApp.initDataUnsafe?.user) {
+      const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+      userId = tgUser.id.toString();
+      username = tgUser.username || "Guest";
     }
 
-    document.getElementById("username").textContent = userName;
+    document.getElementById("username").innerText = "@" + username;
 
-    const userDoc = doc(db, "users", userId);
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
+    const userRef = doc(db, "users", userId);
+    const referralParam = new URLSearchParams(window.location.search).get("ref");
 
-    // Referral logic
-    if (ref && ref !== userId) {
-      const refDoc = doc(db, "users", `tg_${ref.replace('@','')}`);
-      getDoc(refDoc).then(async (snap) => {
-        if (snap.exists()) {
-          await updateDoc(refDoc, {
-            balance: increment(100),
-            referrals: increment(1),
-          });
-        }
-      });
-    }
-
-    // Initialize new user if not exists
     async function initUser() {
-      const snap = await getDoc(userDoc);
-      if (!snap.exists()) {
-        await setDoc(userDoc, {
+      const docSnap = await getDoc(userRef);
+      if (!docSnap.exists()) {
+        await setDoc(userRef, {
           balance: 0,
-          referrals: 0,
-          username: userName,
+          lastLogin: Date.now(),
+          username: username
         });
-      } else if (!snap.data().username && userName !== "Guest") {
-        await updateDoc(userDoc, { username: userName });
+        if (referralParam && referralParam !== userId) {
+          const refUser = doc(db, "users", referralParam);
+          await updateDoc(refUser, { balance: increment(100) });
+        }
       }
+      loadDashboard();
+      loadLeaderboard();
     }
 
-    // UI updater
-    async function updateUI() {
-      const snap = await getDoc(userDoc);
-      const data = snap.data();
-      const balance = data.balance || 0;
-      const referrals = data.referrals || 0;
-
-      document.getElementById("balance").textContent = balance;
-      document.getElementById("referralCount").textContent = referrals;
-
-      let level = "1";
-      if (balance >= 1000 && balance < 100000) level = "2";
-      else if (balance >= 100000) level = "3";
-      document.getElementById("level").textContent = level;
-
-      const link = `https://hush-mane.github.io/Coin-Rush-/?ref=${userName}`;
-      document.getElementById("refLink").href = link;
-      document.getElementById("refLink").textContent = link;
+    async function loadDashboard() {
+      const docSnap = await getDoc(userRef);
+      const data = docSnap.data();
+      const bal = data.balance || 0;
+      document.getElementById("balance").innerText = bal;
+      document.getElementById("level").innerText = getLevel(bal);
     }
 
-    // Mining logic
-    let clicks = 0;
-    const maxClicksPerDay = 10;
-    const mineBtn = document.getElementById("mineBtn");
+    function getLevel(bal) {
+      if (bal >= 100000) return 3;
+      if (bal >= 1000) return 2;
+      return 1;
+    }
 
-    mineBtn.addEventListener("click", async () => {
-      if (clicks >= maxClicksPerDay) {
-        alert("You've reached your daily mining limit!");
-        return;
+    async function mine() {
+      await updateDoc(userRef, { balance: increment(10) });
+      loadDashboard();
+    }
+
+    async function dailyLogin() {
+      const docSnap = await getDoc(userRef);
+      const data = docSnap.data();
+      const now = Date.now();
+      const last = data.lastLogin || 0;
+      if (now - last >= 86400000) {
+        await updateDoc(userRef, {
+          balance: increment(100),
+          lastLogin: now
+        });
+        alert("You earned 100 CRT for logging in today!");
+      } else {
+        alert("Already claimed daily reward today.");
       }
-      await updateDoc(userDoc, {
-        balance: increment(10),
-      });
-      clicks++;
-      updateUI();
-    });
+      loadDashboard();
+    }
 
-    // Leaderboard logic
+    function copyReferral() {
+      const link = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
+      navigator.clipboard.writeText(link);
+      alert("Referral link copied!");
+    }
+
     async function loadLeaderboard() {
-      const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(5));
-      const snap = await getDocs(q);
-      const list = document.getElementById("leaderboardList");
+      const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(10));
+      const querySnapshot = await getDocs(q);
+      const list = document.getElementById("leaderboard");
       list.innerHTML = "";
-      snap.forEach((docSnap, index) => {
-        const d = docSnap.data();
-        const name = d.username || "Anon";
-        list.innerHTML += `<li>#${index + 1} - ${name} - ${d.balance} CRT</li>`;
+      let i = 1;
+      querySnapshot.forEach(doc => {
+        const d = doc.data();
+        const uname = d.username || "Guest";
+        const li = document.createElement("li");
+        li.textContent = `#${i++} - @${uname} - ${d.balance || 0} CRT`;
+        list.appendChild(li);
       });
     }
 
-    // Daily login bonus
-    const today = new Date().toDateString();
-    const lastLoginKey = "coinrush_last_login_" + userId;
-    const lastLogin = localStorage.getItem(lastLoginKey);
-    if (lastLogin !== today) {
-      await updateDoc(userDoc, {
-        balance: increment(100),
-      });
-      localStorage.setItem(lastLoginKey, today);
-      alert("🎉 You've received your 100 CRT daily login reward!");
-    }
-
-    // Init everything
-    await initUser();
-    await updateUI();
-    await loadLeaderboard();
+    initUser();
   </script>
 </body>
 </html>
