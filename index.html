@@ -67,7 +67,7 @@
   </style>
 </head>
 <body>
-  <header>🚀 CoinRush Dashboard</header>
+  <header>🚀 Welcome, loading...</header>
   <div class="container">
     <div class="balance">Balance: <span id="balance">Loading...</span> $CRT</div>
     <div class="level">Level: <span id="level">Loading...</span></div>
@@ -83,7 +83,7 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs + Mining Script -->
+  <!-- Firebase + Telegram logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -102,16 +102,27 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Local user ID (simulates login)
-    let userId = localStorage.getItem("coinrush_user");
-    if (!userId) {
-      userId = "user_" + Math.random().toString(36).substring(2, 10);
+    // Telegram Mini App integration
+    let tg = window.Telegram?.WebApp;
+    let userId, userName;
+
+    if (tg?.initDataUnsafe?.user) {
+      const user = tg.initDataUnsafe.user;
+      userId = `tg_${user.id}`;
+      userName = user.username ? `@${user.username}` : user.first_name;
+    } else {
+      userId = localStorage.getItem("coinrush_user") || "guest_" + Math.random().toString(36).substring(2, 10);
       localStorage.setItem("coinrush_user", userId);
+      userName = "Guest";
     }
 
-    // Handle Referral
+    document.querySelector("header").innerHTML = `🚀 Welcome, ${userName}!`;
+
+    const userDoc = doc(db, "users", userId);
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
+
+    // Referral logic
     if (ref && ref !== userId) {
       const refDoc = doc(db, "users", ref);
       getDoc(refDoc).then(async (snap) => {
@@ -124,8 +135,7 @@
       });
     }
 
-    const userDoc = doc(db, "users", userId);
-
+    // Initialize new user if not exists
     async function initUser() {
       const snap = await getDoc(userDoc);
       if (!snap.exists()) {
@@ -136,6 +146,7 @@
       }
     }
 
+    // UI updater
     async function updateUI() {
       const snap = await getDoc(userDoc);
       const data = snap.data();
@@ -145,36 +156,34 @@
       document.getElementById("balance").textContent = balance;
       document.getElementById("referralCount").textContent = referrals;
 
-      // Levels
       let level = "1";
       if (balance >= 1000 && balance < 100000) level = "2";
       else if (balance >= 100000) level = "3";
       document.getElementById("level").textContent = level;
 
-      // Referral Link
       const link = `${location.origin}${location.pathname}?ref=${userId}`;
       document.getElementById("refLink").href = link;
       document.getElementById("refLink").textContent = link;
     }
 
-    // Mining Logic (10 times per day)
+    // Mining logic
     let clicks = 0;
     const maxClicksPerDay = 10;
     const mineBtn = document.getElementById("mineBtn");
 
     mineBtn.addEventListener("click", async () => {
       if (clicks >= maxClicksPerDay) {
-        alert("You’ve reached your daily mining limit!");
+        alert("You've reached your daily mining limit!");
         return;
       }
       await updateDoc(userDoc, {
-        balance: increment(1),
+        balance: increment(10),
       });
       clicks++;
       updateUI();
     });
 
-    // Load leaderboard
+    // Leaderboard logic
     async function loadLeaderboard() {
       const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(5));
       const snap = await getDocs(q);
@@ -186,6 +195,19 @@
       });
     }
 
+    // Daily login bonus
+    const today = new Date().toDateString();
+    const lastLoginKey = "coinrush_last_login_" + userId;
+    const lastLogin = localStorage.getItem(lastLoginKey);
+    if (lastLogin !== today) {
+      await updateDoc(userDoc, {
+        balance: increment(100),
+      });
+      localStorage.setItem(lastLoginKey, today);
+      alert("🎉 You've received your 100 CRT daily login reward!");
+    }
+
+    // Run all logic
     await initUser();
     await updateUI();
     await loadLeaderboard();
