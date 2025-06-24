@@ -4,154 +4,144 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CoinRush Airdrop</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap">
   <style>
     body {
       margin: 0;
-      background: #0f0f0f;
       font-family: 'Orbitron', sans-serif;
+      background-color: #0d0d0d;
       color: #fff;
       text-align: center;
     }
     header {
-      padding: 20px;
-      background: #1a1a1a;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: #000;
     }
     header img {
       height: 40px;
     }
-    #balance {
-      font-size: 18px;
-      margin-right: 10px;
+    .balance {
+      font-size: 16px;
     }
-    .container {
-      padding: 20px;
+    h1 {
+      margin: 20px 0 10px;
     }
     button {
-      background: #ff4081;
+      background-color: #ff4081;
       color: white;
       border: none;
       padding: 12px 20px;
       margin: 10px;
       font-size: 16px;
-      cursor: pointer;
       border-radius: 6px;
-      transition: background 0.3s;
+      cursor: pointer;
     }
-    button:hover {
-      background: #e91e63;
+    #mineZone {
+      margin-top: 30px;
     }
-    .wheel {
-      margin: 30px auto;
-      width: 200px;
-      height: 200px;
-      border: 10px solid #ff4081;
-      border-radius: 50%;
-      position: relative;
-      animation: none;
+    .block {
+      font-size: 32px;
+      width: 60px;
+      height: 60px;
+      background: #222;
+      border: 2px solid #ff4081;
+      border-radius: 8px;
+      transition: transform 0.2s ease;
     }
-    .spin-animation {
-      animation: spin 3s ease-out;
+    .block.used {
+      background: #555;
+      pointer-events: none;
+      opacity: 0.6;
     }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(1080deg); }
-    }
-    .referral {
-      margin-top: 20px;
+    #refLink {
       font-size: 14px;
-      word-break: break-word;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <header>
     <img src="logo.PNG" alt="CoinRush Logo" />
-    <div id="balance">Balance: 0 CRT</div>
+    <div class="balance" id="balanceDisplay">Balance: 0 CRT</div>
   </header>
 
-  <div class="container">
-    <h2>Welcome to CoinRush Airdrop</h2>
-    <p id="userInfo">Fetching Telegram info...</p>
+  <h1>Welcome to CoinRush Airdrop</h1>
+  <p id="userInfo">Fetching Telegram info...</p>
+  <button onclick="claimDaily()">Claim Daily Reward</button>
 
-    <button onclick="claimDaily()">Claim Daily Reward</button>
-    <button onclick="spin()">Mine (Spin Wheel)</button>
-
-    <div class="wheel" id="wheel"></div>
-    <p id="spinStatus">Spins left today: <span id="spinsLeft">5</span></p>
-
-    <div class="referral">
-      Share your link and earn 100 CRT per referral!<br>
-      <span id="refLink">Generating...</span>
-    </div>
+  <div id="mineZone">
+    <button onclick="mineTokens()">Mine 💰</button>
+    <p id="spinsLeft">Spins left today: 5</p>
   </div>
 
+  <p>Share your link and earn 100 CRT per referral!</p>
+  <p id="refLink">Generating...</p>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     let balance = 0;
     let spins = 5;
-    const balanceEl = document.getElementById("balance");
-    const userInfo = document.getElementById("userInfo");
-    const spinStatus = document.getElementById("spinsLeft");
-    const refLink = document.getElementById("refLink");
-    const wheel = document.getElementById("wheel");
+    let lastDaily = localStorage.getItem('lastDaily') || '';
+    const balanceDisplay = document.getElementById("balanceDisplay");
+    const spinsLeft = document.getElementById("spinsLeft");
 
-    function updateBalance() {
-      balanceEl.textContent = "Balance: " + balance + " CRT";
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+
+    function updateBalanceDisplay() {
+      balanceDisplay.textContent = `Balance: ${balance} CRT`;
+    }
+
+    function getAccountAge(created) {
+      const now = new Date();
+      const then = new Date(created * 1000);
+      const years = Math.max(1, now.getFullYear() - then.getFullYear());
+      return years;
+    }
+
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      const user = tg.initDataUnsafe.user;
+      const username = user.username || user.first_name;
+      const createdAt = user.created_at || 1609459200; // default to Jan 1, 2021
+      const years = getAccountAge(createdAt);
+      const earned = years * 1000;
+      balance += earned;
+      updateBalanceDisplay();
+
+      document.getElementById("userInfo").innerText =
+        `Hello @${username} — Telegram Age: ${years} year(s)`;
+      const ref = tg.initDataUnsafe.start_param || '';
+      const refDisplay = document.getElementById("refLink");
+      refDisplay.innerText = `https://t.me/${tg.initDataUnsafe.user?.username}?start=${tg.initDataUnsafe.user.id}`;
     }
 
     function claimDaily() {
-      const lastClaim = localStorage.getItem("lastDaily");
-      const now = new Date().getTime();
-      if (!lastClaim || now - lastClaim > 24 * 60 * 60 * 1000) {
-        balance += 500;
-        updateBalance();
-        localStorage.setItem("lastDaily", now);
-        alert("You earned 500 CRT for daily login!");
-      } else {
-        alert("Come back after 24 hours for your daily reward!");
+      const now = new Date().toDateString();
+      if (lastDaily === now) {
+        alert("You've already claimed your daily reward today!");
+        return;
       }
+      lastDaily = now;
+      localStorage.setItem('lastDaily', now);
+      balance += 500;
+      updateBalanceDisplay();
+      alert("You claimed 500 CRT!");
     }
 
-    function spin() {
+    function mineTokens() {
       if (spins <= 0) {
-        alert("No spins left today!");
+        alert("No mining attempts left for today!");
         return;
       }
       spins--;
-      spinStatus.textContent = spins;
-      wheel.classList.remove("spin-animation");
-      void wheel.offsetWidth;
-      wheel.classList.add("spin-animation");
-
-      const reward = [100, 200, 300, 400, 500];
-      const prize = reward[Math.floor(Math.random() * reward.length)];
-      setTimeout(() => {
-        balance += prize;
-        updateBalance();
-        alert("You mined " + prize + " CRT!");
-      }, 3000);
-    }
-
-    // Telegram Mini App User Info
-    window.Telegram.WebApp.ready();
-    const tg = window.Telegram.WebApp;
-    const user = tg.initDataUnsafe.user;
-    if (user) {
-      const years = new Date().getFullYear() - new Date(user.date * 1000).getFullYear();
-      const ageTokens = years * 1000;
-      balance += ageTokens;
-      updateBalance();
-      userInfo.textContent = `Hello, ${user.username} (${years} year(s) on Telegram) - You earned ${ageTokens} CRT`;
-      const refCode = user.username || user.id;
-      const link = `https://t.me/CR_Token_bot?start=${refCode}`;
-      refLink.innerHTML = `<a href="${link}" style="color: #4fc3f7;">${link}</a>`;
-    } else {
-      userInfo.textContent = "User not detected via Telegram.";
+      spinsLeft.innerText = `Spins left today: ${spins}`;
+      const amount = Math.floor(Math.random() * 300) + 100;
+      balance += amount;
+      updateBalanceDisplay();
+      alert(`You mined ${amount} CRT!`);
     }
   </script>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </body>
 </html>
