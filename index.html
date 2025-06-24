@@ -3,196 +3,192 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush Dashboard</title>
+  <title>CoinRush 🚀</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
   <style>
     body {
       margin: 0;
-      background: linear-gradient(to bottom right, #0f0f0f, #1b1b1b);
-      font-family: 'Segoe UI', sans-serif;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      font-family: 'Orbitron', sans-serif;
+      background: radial-gradient(ellipse at center, #0a0f1c 0%, #000000 100%);
+      color: #00ffcc;
+      overflow-x: hidden;
     }
-    .card {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 15px;
-      padding: 30px;
-      width: 350px;
+    header {
       text-align: center;
-      box-shadow: 0 0 30px rgba(0, 255, 164, 0.1);
+      padding: 20px;
+      font-size: 1.5em;
+      color: #00ffcc;
     }
-    .logo {
-      width: 80px;
-      margin-bottom: 10px;
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background: rgba(0,255,204,0.05);
+      border: 1px solid #00ffcc30;
+      border-radius: 15px;
+      box-shadow: 0 0 10px #00ffcc40;
     }
-    h2 {
-      margin-top: 5px;
-      font-size: 22px;
-      font-weight: 600;
-      color: #00ffa2;
-    }
-    .balance {
-      margin: 20px 0 10px;
-      font-size: 20px;
-    }
-    .clicks {
-      font-size: 14px;
-      color: #ccc;
+    .balance, .level, .referrals {
+      margin: 10px 0;
+      font-size: 1.2em;
     }
     button {
-      margin-top: 20px;
-      padding: 12px 25px;
-      background-color: #00ffa2;
-      border: none;
-      border-radius: 8px;
-      color: black;
-      font-weight: bold;
-      font-size: 16px;
+      width: 100%;
+      padding: 15px;
+      background-color: #00ffcc20;
+      border: 1px solid #00ffcc80;
+      color: #00ffcc;
+      font-size: 1em;
+      border-radius: 10px;
       cursor: pointer;
-      transition: 0.2s;
     }
-    button:disabled {
-      background-color: #444;
-      cursor: not-allowed;
+    button:hover {
+      background-color: #00ffcc40;
     }
-    .cooldown {
-      margin-top: 10px;
-      color: #999;
-      font-size: 13px;
+    .leaderboard {
+      margin-top: 20px;
+    }
+    .leaderboard h3 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .leaderboard ul {
+      list-style: none;
+      padding: 0;
+    }
+    .leaderboard li {
+      padding: 8px;
+      border-bottom: 1px solid #00ffcc30;
+    }
+    a {
+      color: #00ffff;
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
+  <header>🚀 CoinRush Dashboard</header>
+  <div class="container">
+    <div class="balance">Balance: <span id="balance">Loading...</span> $CRT</div>
+    <div class="level">Level: <span id="level">Loading...</span></div>
+    <div class="referrals">Referrals: <span id="referralCount">Loading...</span></div>
+    <button id="mineBtn">⛏️ Mine CRT</button>
+    <p style="text-align:center; margin-top:15px;">
+      Your Referral Link:<br>
+      <a id="refLink" href="#">Generating...</a>
+    </p>
+    <div class="leaderboard">
+      <h3>🏆 Leaderboard</h3>
+      <ul id="leaderboardList"></ul>
+    </div>
+  </div>
 
-<div class="card">
-  <img src="logo.PNG" alt="CoinRush Logo" class="logo"/>
-  <h2>CoinRush Mining</h2>
-  <div class="balance" id="balance">Loading balance...</div>
-  <div class="clicks" id="clickInfo">Clicks left: ...</div>
-  <button id="mineBtn">Mine +10 $CRT</button>
-  <div class="cooldown" id="cooldownMsg"></div>
-</div>
+  <!-- Firebase SDKs + Mining Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
+      authDomain: "coinrush-token.firebaseapp.com",
+      projectId: "coinrush-token",
+      storageBucket: "coinrush-token.appspot.com",
+      messagingSenderId: "159731574189",
+      appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
+      measurementId: "G-ZCMGL2MX3L"
+    };
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
-    authDomain: "coinrush-token.firebaseapp.com",
-    projectId: "coinrush-token",
-    storageBucket: "coinrush-token.firebasestorage.app",
-    messagingSenderId: "159731574189",
-    appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
-    measurementId: "G-ZCMGL2MX3L"
-  };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  const userId = "guest123";
-  const userRef = doc(db, "users", userId);
-
-  const mineBtn = document.getElementById("mineBtn");
-  const balanceEl = document.getElementById("balance");
-  const clickInfo = document.getElementById("clickInfo");
-  const cooldownMsg = document.getElementById("cooldownMsg");
-
-  let isCooldown = false;
-  let clickLimit = 10;
-
-  function getTodayDate() {
-    return new Date().toISOString().split("T")[0];
-  }
-
-  async function loadUser() {
-    console.log("Loading user...");
-    const docSnap = await getDoc(userRef);
-    const today = getTodayDate();
-
-    if (!docSnap.exists()) {
-      console.log("Creating new user...");
-      await setDoc(userRef, {
-        balance: 0,
-        clickCount: 0,
-        lastMinedDate: today
-      });
-      return { balance: 0, clickCount: 0, lastMinedDate: today };
+    // Local user ID (simulates login)
+    let userId = localStorage.getItem("coinrush_user");
+    if (!userId) {
+      userId = "user_" + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem("coinrush_user", userId);
     }
 
-    let data = docSnap.data();
-
-    if (data.lastMinedDate !== today) {
-      console.log("Resetting clicks for new day...");
-      await updateDoc(userRef, {
-        clickCount: 0,
-        lastMinedDate: today
+    // Handle Referral
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref && ref !== userId) {
+      const refDoc = doc(db, "users", ref);
+      getDoc(refDoc).then(async (snap) => {
+        if (snap.exists()) {
+          await updateDoc(refDoc, {
+            balance: increment(100),
+            referrals: increment(1),
+          });
+        }
       });
-      data.clickCount = 0;
-      data.lastMinedDate = today;
     }
 
-    return data;
-  }
+    const userDoc = doc(db, "users", userId);
 
-  function startCooldown() {
-    isCooldown = true;
-    mineBtn.disabled = true;
-    let countdown = 3;
-    cooldownMsg.innerText = `Cooldown: ${countdown}s`;
-    const interval = setInterval(() => {
-      countdown--;
-      cooldownMsg.innerText = `Cooldown: ${countdown}s`;
-      if (countdown <= 0) {
-        clearInterval(interval);
-        cooldownMsg.innerText = "";
-        isCooldown = false;
-        mineBtn.disabled = false;
+    async function initUser() {
+      const snap = await getDoc(userDoc);
+      if (!snap.exists()) {
+        await setDoc(userDoc, {
+          balance: 0,
+          referrals: 0,
+        });
       }
-    }, 1000);
-  }
-
-  async function updateUI() {
-    const data = await loadUser();
-    balanceEl.innerText = `${data.balance} $CRT`;
-    clickInfo.innerText = `Clicks left: ${clickLimit - data.clickCount}`;
-    mineBtn.disabled = isCooldown || data.clickCount >= clickLimit;
-    if (data.clickCount >= clickLimit) {
-      cooldownMsg.innerText = "Daily limit reached!";
-    }
-  }
-
-  mineBtn.addEventListener("click", async () => {
-    if (isCooldown) return;
-
-    const docSnap = await getDoc(userRef);
-    let data = docSnap.data();
-
-    if (data.clickCount >= clickLimit) {
-      mineBtn.disabled = true;
-      cooldownMsg.innerText = "Daily limit reached!";
-      return;
     }
 
-    const newBalance = data.balance + 10;
-    const newClickCount = data.clickCount + 1;
+    async function updateUI() {
+      const snap = await getDoc(userDoc);
+      const data = snap.data();
+      const balance = data.balance || 0;
+      const referrals = data.referrals || 0;
 
-    await updateDoc(userRef, {
-      balance: newBalance,
-      clickCount: newClickCount
+      document.getElementById("balance").textContent = balance;
+      document.getElementById("referralCount").textContent = referrals;
+
+      // Levels
+      let level = "1";
+      if (balance >= 1000 && balance < 100000) level = "2";
+      else if (balance >= 100000) level = "3";
+      document.getElementById("level").textContent = level;
+
+      // Referral Link
+      const link = `${location.origin}${location.pathname}?ref=${userId}`;
+      document.getElementById("refLink").href = link;
+      document.getElementById("refLink").textContent = link;
+    }
+
+    // Mining Logic (10 times per day)
+    let clicks = 0;
+    const maxClicksPerDay = 10;
+    const mineBtn = document.getElementById("mineBtn");
+
+    mineBtn.addEventListener("click", async () => {
+      if (clicks >= maxClicksPerDay) {
+        alert("You’ve reached your daily mining limit!");
+        return;
+      }
+      await updateDoc(userDoc, {
+        balance: increment(1),
+      });
+      clicks++;
+      updateUI();
     });
 
-    startCooldown();
-    updateUI();
-  });
+    // Load leaderboard
+    async function loadLeaderboard() {
+      const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(5));
+      const snap = await getDocs(q);
+      const list = document.getElementById("leaderboardList");
+      list.innerHTML = "";
+      snap.forEach((doc, index) => {
+        const d = doc.data();
+        list.innerHTML += `<li>#${index + 1} - ${doc.id.slice(-5)}... - ${d.balance} CRT</li>`;
+      });
+    }
 
-  updateUI();
-</script>
-
+    await initUser();
+    await updateUI();
+    await loadLeaderboard();
+  </script>
 </body>
 </html>
