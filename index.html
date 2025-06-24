@@ -3,183 +3,196 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush Mining</title>
+  <title>CoinRush Dashboard</title>
   <style>
     body {
       margin: 0;
+      background: linear-gradient(to bottom right, #0f0f0f, #1b1b1b);
       font-family: 'Segoe UI', sans-serif;
-      background: #0e0e0e;
-      color: #fff;
+      color: white;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
+      height: 100vh;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 15px;
       padding: 30px;
+      width: 350px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(0, 255, 164, 0.1);
     }
     .logo {
-      width: 120px;
-      margin-bottom: 20px;
-    }
-    .dashboard {
-      background: #1b1b1b;
-      padding: 20px 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
-      text-align: center;
-      max-width: 400px;
-      width: 100%;
-    }
-    h1 {
-      font-size: 24px;
+      width: 80px;
       margin-bottom: 10px;
     }
-    .balance {
-      font-size: 20px;
-      margin: 10px 0;
+    h2 {
+      margin-top: 5px;
+      font-size: 22px;
+      font-weight: 600;
       color: #00ffa2;
     }
+    .balance {
+      margin: 20px 0 10px;
+      font-size: 20px;
+    }
+    .clicks {
+      font-size: 14px;
+      color: #ccc;
+    }
     button {
-      background: #00ffa2;
-      color: #000;
-      border: none;
+      margin-top: 20px;
       padding: 12px 25px;
+      background-color: #00ffa2;
+      border: none;
       border-radius: 8px;
+      color: black;
       font-weight: bold;
-      cursor: pointer;
       font-size: 16px;
-      margin-top: 15px;
+      cursor: pointer;
+      transition: 0.2s;
     }
     button:disabled {
-      background: #555;
+      background-color: #444;
       cursor: not-allowed;
     }
-    .info {
+    .cooldown {
       margin-top: 10px;
-      font-size: 14px;
-      color: #aaa;
+      color: #999;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
 
+<div class="card">
   <img src="logo.PNG" alt="CoinRush Logo" class="logo"/>
-  <div class="dashboard">
-    <h1>CoinRush Mining</h1>
-    <div class="balance" id="balance">Loading balance...</div>
-    <button id="mineBtn">Mine +10 $CRT</button>
-    <div class="info" id="clickInfo">Clicks left today: ...</div>
-    <div class="info" id="cooldownMsg"></div>
-  </div>
+  <h2>CoinRush Mining</h2>
+  <div class="balance" id="balance">Loading balance...</div>
+  <div class="clicks" id="clickInfo">Clicks left: ...</div>
+  <button id="mineBtn">Mine +10 $CRT</button>
+  <div class="cooldown" id="cooldownMsg"></div>
+</div>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
-      authDomain: "coinrush-token.firebaseapp.com",
-      projectId: "coinrush-token",
-      storageBucket: "coinrush-token.firebasestorage.app",
-      messagingSenderId: "159731574189",
-      appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
-      measurementId: "G-ZCMGL2MX3L"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
+    authDomain: "coinrush-token.firebaseapp.com",
+    projectId: "coinrush-token",
+    storageBucket: "coinrush-token.firebasestorage.app",
+    messagingSenderId: "159731574189",
+    appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
+    measurementId: "G-ZCMGL2MX3L"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const userId = "guest123"; // Replace with Telegram ID or wallet address later
-    const userRef = doc(db, "users", userId);
+  const userId = "guest123";
+  const userRef = doc(db, "users", userId);
 
-    const mineBtn = document.getElementById("mineBtn");
-    const balanceEl = document.getElementById("balance");
-    const clickInfo = document.getElementById("clickInfo");
-    const cooldownMsg = document.getElementById("cooldownMsg");
+  const mineBtn = document.getElementById("mineBtn");
+  const balanceEl = document.getElementById("balance");
+  const clickInfo = document.getElementById("clickInfo");
+  const cooldownMsg = document.getElementById("cooldownMsg");
 
-    let isCooldown = false;
-    let clickLimit = 10;
+  let isCooldown = false;
+  let clickLimit = 10;
 
-    function getTodayDate() {
-      return new Date().toISOString().split("T")[0];
-    }
+  function getTodayDate() {
+    return new Date().toISOString().split("T")[0];
+  }
 
-    async function loadUser() {
-      const docSnap = await getDoc(userRef);
-      const today = getTodayDate();
+  async function loadUser() {
+    console.log("Loading user...");
+    const docSnap = await getDoc(userRef);
+    const today = getTodayDate();
 
-      if (!docSnap.exists()) {
-        await setDoc(userRef, {
-          balance: 0,
-          clickCount: 0,
-          lastMinedDate: today
-        });
-        return { balance: 0, clickCount: 0, lastMinedDate: today };
-      }
-
-      let data = docSnap.data();
-
-      // Reset clicks if new day
-      if (data.lastMinedDate !== today) {
-        await updateDoc(userRef, {
-          clickCount: 0,
-          lastMinedDate: today
-        });
-        data.clickCount = 0;
-        data.lastMinedDate = today;
-      }
-
-      return data;
-    }
-
-    function startCooldown() {
-      isCooldown = true;
-      mineBtn.disabled = true;
-      cooldownMsg.innerText = "Cooldown: 3s";
-      let countdown = 3;
-      const interval = setInterval(() => {
-        countdown--;
-        cooldownMsg.innerText = `Cooldown: ${countdown}s`;
-        if (countdown <= 0) {
-          clearInterval(interval);
-          isCooldown = false;
-          cooldownMsg.innerText = "";
-          mineBtn.disabled = false;
-        }
-      }, 1000);
-    }
-
-    async function updateUI() {
-      const data = await loadUser();
-      balanceEl.innerText = `${data.balance} $CRT`;
-      clickInfo.innerText = `Clicks left today: ${clickLimit - data.clickCount}`;
-      mineBtn.disabled = isCooldown || data.clickCount >= clickLimit;
-    }
-
-    mineBtn.addEventListener("click", async () => {
-      if (isCooldown) return;
-
-      const docSnap = await getDoc(userRef);
-      let data = docSnap.data();
-
-      if (data.clickCount >= clickLimit) {
-        mineBtn.disabled = true;
-        clickInfo.innerText = "Daily limit reached!";
-        return;
-      }
-
-      const newBalance = data.balance + 10;
-      const newClickCount = data.clickCount + 1;
-
-      await updateDoc(userRef, {
-        balance: newBalance,
-        clickCount: newClickCount
+    if (!docSnap.exists()) {
+      console.log("Creating new user...");
+      await setDoc(userRef, {
+        balance: 0,
+        clickCount: 0,
+        lastMinedDate: today
       });
+      return { balance: 0, clickCount: 0, lastMinedDate: today };
+    }
 
-      startCooldown();
-      updateUI();
+    let data = docSnap.data();
+
+    if (data.lastMinedDate !== today) {
+      console.log("Resetting clicks for new day...");
+      await updateDoc(userRef, {
+        clickCount: 0,
+        lastMinedDate: today
+      });
+      data.clickCount = 0;
+      data.lastMinedDate = today;
+    }
+
+    return data;
+  }
+
+  function startCooldown() {
+    isCooldown = true;
+    mineBtn.disabled = true;
+    let countdown = 3;
+    cooldownMsg.innerText = `Cooldown: ${countdown}s`;
+    const interval = setInterval(() => {
+      countdown--;
+      cooldownMsg.innerText = `Cooldown: ${countdown}s`;
+      if (countdown <= 0) {
+        clearInterval(interval);
+        cooldownMsg.innerText = "";
+        isCooldown = false;
+        mineBtn.disabled = false;
+      }
+    }, 1000);
+  }
+
+  async function updateUI() {
+    const data = await loadUser();
+    balanceEl.innerText = `${data.balance} $CRT`;
+    clickInfo.innerText = `Clicks left: ${clickLimit - data.clickCount}`;
+    mineBtn.disabled = isCooldown || data.clickCount >= clickLimit;
+    if (data.clickCount >= clickLimit) {
+      cooldownMsg.innerText = "Daily limit reached!";
+    }
+  }
+
+  mineBtn.addEventListener("click", async () => {
+    if (isCooldown) return;
+
+    const docSnap = await getDoc(userRef);
+    let data = docSnap.data();
+
+    if (data.clickCount >= clickLimit) {
+      mineBtn.disabled = true;
+      cooldownMsg.innerText = "Daily limit reached!";
+      return;
+    }
+
+    const newBalance = data.balance + 10;
+    const newClickCount = data.clickCount + 1;
+
+    await updateDoc(userRef, {
+      balance: newBalance,
+      clickCount: newClickCount
     });
 
+    startCooldown();
     updateUI();
-  </script>
+  });
+
+  updateUI();
+</script>
+
 </body>
 </html>
