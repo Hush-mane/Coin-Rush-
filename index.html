@@ -6,30 +6,36 @@
   <title>CoinRush Dashboard</title>
   <style>
     body {
-      background-color: #0d1117;
-      color: #00ffcc;
+      margin: 0;
+      background: #0d1117;
       font-family: 'Segoe UI', sans-serif;
+      color: #00ffcc;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
     }
 
     #app {
-      width: 380px;
-      max-height: 580px;
-      background: rgba(0, 255, 153, 0.08);
+      width: 400px;
+      max-height: 600px;
+      background: rgba(0, 255, 153, 0.07);
       border: 1px solid #00ffcc;
       border-radius: 12px;
       padding: 20px;
+      box-shadow: 0 0 15px #00ffcc88;
       overflow-y: auto;
-      box-shadow: 0 0 20px #00ffcc33;
+    }
+
+    .logo {
+      display: block;
+      margin: 0 auto 10px;
+      height: 50px;
     }
 
     h2 {
+      text-align: center;
       font-size: 20px;
-      margin-top: 0;
     }
 
     .section {
@@ -38,7 +44,7 @@
 
     button {
       width: 100%;
-      margin: 6px 0;
+      margin: 5px 0;
       padding: 12px;
       background-color: #00ff99;
       border: none;
@@ -48,27 +54,33 @@
       cursor: pointer;
     }
 
+    button:hover {
+      background-color: #33ffaa;
+    }
+
     .leaderboard div {
       font-size: 14px;
+      margin-bottom: 5px;
+      border-bottom: 1px dashed #00ffcc55;
       padding: 4px 0;
-      border-bottom: 1px dashed #00ffcc44;
+    }
+
+    .ref-link {
+      font-size: 12px;
+      word-break: break-word;
+      margin-top: 5px;
     }
 
     .info-label {
+      font-weight: bold;
       color: #00ffaa;
-    }
-
-    .logo {
-      width: 50px;
-      float: right;
-      margin-top: -10px;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <img src="logo.PNG" class="logo" alt="CoinRush Logo"/>
-    <h2>Welcome, <span id="username">Loading...</span></h2>
+    <img src="logo.PNG" alt="CoinRush Logo" class="logo" />
+    <h2>Welcome, <span id="username">Guest</span></h2>
 
     <div class="section">
       <div><span class="info-label">Balance:</span> <span id="balance">Loading...</span></div>
@@ -81,7 +93,7 @@
       <button id="refBtn">🔗 Copy Referral Link</button>
     </div>
 
-    <div class="section leaderboard">
+    <div class="section">
       <h3>🏆 Leaderboard</h3>
       <div id="leaderboard">Loading...</div>
     </div>
@@ -90,7 +102,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, getDocs, collection
+      getFirestore, doc, setDoc, getDoc, updateDoc,
+      increment, serverTimestamp, getDocs, collection
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -106,115 +119,101 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Fallback if not in Telegram Mini App
-    let tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    let userId = tg?.id ? String(tg.id) : 'guest_' + Math.random().toString(36).substring(2);
-    let username = tg?.username || "Guest";
+    Telegram.WebApp.ready();
+
+    const tgUser = Telegram.WebApp.initDataUnsafe?.user;
+    const userId = tgUser?.id?.toString() || 'guest_' + Math.random().toString(36).substring(2);
+    const username = tgUser?.username || "Guest";
     document.getElementById("username").textContent = username;
 
     const userRef = doc(db, "users", userId);
 
     async function setupUser() {
-      try {
-        const snap = await getDoc(userRef);
-        if (!snap.exists()) {
-          const referrer = new URLSearchParams(window.location.search).get("start");
-          if (referrer && referrer !== userId) {
-            try {
-              const refRef = doc(db, "users", referrer);
-              await updateDoc(refRef, { balance: increment(100) });
-            } catch (err) {
-              console.warn("Referral update failed:", err.message);
-            }
-          }
-
-          await setDoc(userRef, {
-            username,
-            balance: 0,
-            level: 1,
-            lastLogin: null,
-            dailyClicks: 0
-          });
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        const referrer = new URLSearchParams(window.location.search).get("start");
+        if (referrer && referrer !== userId) {
+          const refRef = doc(db, "users", referrer);
+          await updateDoc(refRef, { balance: increment(100) }).catch(() => {});
         }
-      } catch (err) {
-        console.error("User setup failed:", err.message);
+        await setDoc(userRef, {
+          username,
+          balance: 0,
+          level: 1,
+          lastLogin: null,
+          dailyClicks: 0
+        });
       }
+    }
+
+    async function updateLevel(balance) {
+      let level = 1;
+      if (balance >= 1000) level = 2;
+      if (balance >= 100000) level = 3;
+      await updateDoc(userRef, { level });
     }
 
     async function loadDashboard() {
-      try {
-        const snap = await getDoc(userRef);
-        const data = snap.data();
-        document.getElementById("balance").textContent = `${data.balance} CRT`;
-        document.getElementById("level").textContent = `${data.level}`;
-      } catch (err) {
-        console.error("Dashboard load failed:", err.message);
-      }
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      document.getElementById("balance").textContent = `${data.balance} CRT`;
+      document.getElementById("level").textContent = `${data.level}`;
     }
 
     async function dailyLogin() {
-      try {
-        const snap = await getDoc(userRef);
-        const data = snap.data();
-        const last = data.lastLogin?.toDate?.() || new Date(0);
-        const now = new Date();
-        if ((now - last) > 86400000) {
-          await updateDoc(userRef, {
-            balance: increment(100),
-            lastLogin: serverTimestamp()
-          });
-          alert("🎁 You've earned 100 CRT!");
-        } else {
-          alert("⏳ Already claimed today's reward");
-        }
-        await loadDashboard();
-      } catch (err) {
-        console.error("Daily login failed:", err.message);
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      const last = data.lastLogin?.toDate?.() || new Date(0);
+      const now = new Date();
+      if ((now - last) > 86400000) {
+        await updateDoc(userRef, {
+          balance: increment(100),
+          lastLogin: serverTimestamp()
+        });
+        alert("✅ Daily reward claimed!");
+      } else {
+        alert("⏳ Already claimed today!");
       }
+      loadDashboard();
     }
 
     async function mine() {
-      try {
-        const snap = await getDoc(userRef);
-        const data = snap.data();
-        if (data.dailyClicks >= 10) {
-          alert("🚫 Daily mining limit reached (10 clicks)");
-          return;
-        }
-        await updateDoc(userRef, {
-          balance: increment(10),
-          dailyClicks: increment(1)
-        });
-        await loadDashboard();
-      } catch (err) {
-        console.error("Mining failed:", err.message);
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      if (data.dailyClicks >= 10) {
+        alert("⛏️ Daily mining limit reached (10)");
+        return;
       }
+      await updateDoc(userRef, {
+        balance: increment(10),
+        dailyClicks: increment(1)
+      });
+      await updateLevel(data.balance + 10);
+      loadDashboard();
     }
 
     async function loadLeaderboard() {
-      try {
-        const querySnap = await getDocs(collection(db, "users"));
-        let users = [];
-        querySnap.forEach(doc => {
-          const d = doc.data();
-          users.push({ id: doc.id, username: d.username || "Guest", balance: d.balance || 0 });
-        });
-        users = users.sort((a, b) => b.balance - a.balance).slice(0, 10);
-        const lb = document.getElementById("leaderboard");
-        lb.innerHTML = "";
-        users.forEach((u, i) => {
-          lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
-        });
-      } catch (err) {
-        console.error("Leaderboard load failed:", err.message);
-      }
+      const querySnap = await getDocs(collection(db, "users"));
+      let users = [];
+      querySnap.forEach(doc => {
+        const d = doc.data();
+        users.push({ username: d.username || "Guest", balance: d.balance || 0 });
+      });
+      users.sort((a, b) => b.balance - a.balance);
+      const lb = document.getElementById("leaderboard");
+      lb.innerHTML = "";
+      users.slice(0, 10).forEach((u, i) => {
+        lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
+      });
     }
 
     document.getElementById("mineBtn").onclick = mine;
     document.getElementById("dailyBtn").onclick = dailyLogin;
     document.getElementById("refBtn").onclick = () => {
-      const ref = `https://t.me/CoinRushApp?start=${userId}`;
-      navigator.clipboard.writeText(ref).then(() => alert("🔗 Referral link copied!"));
+      const refLink = `https://t.me/CR_Token_bot/CoinRushLive?start=${userId}`;
+      navigator.clipboard.writeText(refLink).then(() => {
+        alert("🔗 Referral link copied!");
+      });
     };
 
     await setupUser();
