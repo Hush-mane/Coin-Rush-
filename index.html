@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CoinRush Dashboard</title>
   <style>
     body {
@@ -19,17 +19,17 @@
     #app {
       width: 380px;
       max-height: 580px;
-      background: rgba(0, 255, 153, 0.1);
+      background: rgba(0, 255, 153, 0.08);
       border: 1px solid #00ffcc;
       border-radius: 12px;
       padding: 20px;
       overflow-y: auto;
-      box-shadow: 0 0 20px #00ffcc44;
+      box-shadow: 0 0 20px #00ffcc33;
     }
 
     h2 {
-      margin-top: 0;
       font-size: 20px;
+      margin-top: 0;
     }
 
     .section {
@@ -46,39 +46,29 @@
       color: #000;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background-color: #33ffaa;
-    }
-
-    .leaderboard {
-      margin-top: 10px;
     }
 
     .leaderboard div {
-      margin: 4px 0;
       font-size: 14px;
-      border-bottom: 1px dashed #00ffcc33;
       padding: 4px 0;
+      border-bottom: 1px dashed #00ffcc44;
     }
 
     .info-label {
-      font-weight: bold;
       color: #00ffaa;
     }
 
-    .ref-link {
-      word-break: break-all;
-      margin-top: 6px;
-      font-size: 12px;
+    .logo {
+      width: 50px;
+      float: right;
+      margin-top: -10px;
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <h2>Welcome, <span id="username">Guest</span></h2>
+    <img src="logo.PNG" class="logo" alt="CoinRush Logo"/>
+    <h2>Welcome, <span id="username">Loading...</span></h2>
 
     <div class="section">
       <div><span class="info-label">Balance:</span> <span id="balance">Loading...</span></div>
@@ -100,8 +90,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, doc, setDoc, getDoc, updateDoc,
-      increment, serverTimestamp, getDocs, collection
+      getFirestore, doc, setDoc, getDoc, updateDoc, increment, serverTimestamp, getDocs, collection
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -117,9 +106,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const userId = Telegram.WebApp?.initDataUnsafe?.user?.id || 'guest_' + Math.random().toString(36).substring(2);
-    const username = Telegram.WebApp?.initDataUnsafe?.user?.username || "Guest";
-    document.getElementById('username').textContent = username;
+    // Fallback if not in Telegram Mini App
+    let tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    let userId = tg?.id ? String(tg.id) : 'guest_' + Math.random().toString(36).substring(2);
+    let username = tg?.username || "Guest";
+    document.getElementById("username").textContent = username;
 
     const userRef = doc(db, "users", userId);
 
@@ -129,9 +120,14 @@
         if (!snap.exists()) {
           const referrer = new URLSearchParams(window.location.search).get("start");
           if (referrer && referrer !== userId) {
-            const refRef = doc(db, "users", referrer);
-            await updateDoc(refRef, { balance: increment(100) }).catch(() => {});
+            try {
+              const refRef = doc(db, "users", referrer);
+              await updateDoc(refRef, { balance: increment(100) });
+            } catch (err) {
+              console.warn("Referral update failed:", err.message);
+            }
           }
+
           await setDoc(userRef, {
             username,
             balance: 0,
@@ -141,16 +137,8 @@
           });
         }
       } catch (err) {
-        alert("⚠️ Error setting up user. Check Firebase connection.");
-        console.error(err);
+        console.error("User setup failed:", err.message);
       }
-    }
-
-    async function updateLevel(balance) {
-      let level = 1;
-      if (balance >= 1000) level = 2;
-      if (balance >= 100000) level = 3;
-      await updateDoc(userRef, { level });
     }
 
     async function loadDashboard() {
@@ -160,8 +148,7 @@
         document.getElementById("balance").textContent = `${data.balance} CRT`;
         document.getElementById("level").textContent = `${data.level}`;
       } catch (err) {
-        alert("⚠️ Couldn't load dashboard.");
-        console.error(err);
+        console.error("Dashboard load failed:", err.message);
       }
     }
 
@@ -176,14 +163,13 @@
             balance: increment(100),
             lastLogin: serverTimestamp()
           });
-          alert("🎉 You've earned 100 CRT!");
+          alert("🎁 You've earned 100 CRT!");
         } else {
-          alert("⏳ Already claimed today's login reward!");
+          alert("⏳ Already claimed today's reward");
         }
-        loadDashboard();
+        await loadDashboard();
       } catch (err) {
-        alert("⚠️ Error during daily login.");
-        console.error(err);
+        console.error("Daily login failed:", err.message);
       }
     }
 
@@ -199,11 +185,9 @@
           balance: increment(10),
           dailyClicks: increment(1)
         });
-        await updateLevel(data.balance + 10);
-        loadDashboard();
+        await loadDashboard();
       } catch (err) {
-        alert("⚠️ Error during mining.");
-        console.error(err);
+        console.error("Mining failed:", err.message);
       }
     }
 
@@ -222,8 +206,7 @@
           lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
         });
       } catch (err) {
-        alert("⚠️ Error loading leaderboard.");
-        console.error(err);
+        console.error("Leaderboard load failed:", err.message);
       }
     }
 
