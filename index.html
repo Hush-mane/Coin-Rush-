@@ -7,130 +7,148 @@
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      font-family: 'Segoe UI', sans-serif;
+      background: #0c0c0c;
       color: #fff;
+    }
+    header {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      min-height: 100vh;
-      padding: 20px;
+      padding: 1em;
+      background: #111;
     }
-
-    .container {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    header img {
+      height: 40px;
     }
-
-    h1 {
-      margin-bottom: 10px;
-    }
-
-    .username {
+    .balance {
       font-size: 18px;
-      margin: 5px 0;
+      font-weight: bold;
     }
-
-    .age {
-      margin: 10px 0;
-      font-size: 16px;
+    main {
+      padding: 2em;
+      text-align: center;
     }
-
-    .reward-section {
-      margin: 20px 0;
+    h1 {
+      font-size: 28px;
     }
-
     button {
-      background: #ffae00;
+      background: #FFAB00;
       border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 16px;
       color: #000;
+      padding: 0.7em 1.5em;
+      margin: 0.5em;
+      border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
     }
-
-    .disabled {
-      background: #888;
-      cursor: not-allowed;
+    .wheel-container {
+      margin-top: 20px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
     }
-
-    .small {
-      font-size: 13px;
-      color: #ccc;
-      margin-top: 5px;
+    .referral {
+      margin-top: 1em;
+      font-size: 14px;
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🚀 CoinRush Airdrop</h1>
-    <div class="username" id="username">Loading...</div>
-    <div class="age" id="accountAge"></div>
-    <div class="reward-section">
-      <div id="rewardMessage">Checking login status...</div>
-      <button id="claimBtn" class="disabled" disabled>Claim Daily Reward</button>
-      <div class="small" id="cooldownText"></div>
+  <header>
+    <img src="logo.png" alt="CoinRush Logo" />
+    <div class="balance" id="balance">Balance: 0 $CRT</div>
+  </header>
+
+  <main>
+    <h1>Welcome to CoinRush Airdrop</h1>
+    <p id="greeting">Fetching your Telegram info...</p>
+
+    <button onclick="claimLogin()">Daily Login</button>
+    <button onclick="startMining()">Mine Tokens</button>
+
+    <div class="wheel-container" id="wheelContainer">
+      <p>Spin the wheel! You have <span id="spinsLeft">5</span> spins left today.</p>
+      <button onclick="spinWheel()">🎡 Spin</button>
+      <div id="spinResult"></div>
     </div>
-  </div>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <div class="referral">
+      <p>Your referral link:</p>
+      <code id="referralLink">Generating...</code>
+    </div>
+  </main>
+
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    const user = tg.initDataUnsafe?.user;
+    let balance = 0;
+    let spinsLeft = 5;
 
-    const usernameEl = document.getElementById("username");
-    const ageEl = document.getElementById("accountAge");
-    const rewardMsg = document.getElementById("rewardMessage");
-    const claimBtn = document.getElementById("claimBtn");
-    const cooldownText = document.getElementById("cooldownText");
+    const telegram = window.Telegram.WebApp;
+    telegram.ready();
 
-    if (!user) {
-      usernameEl.innerText = "Please open via Telegram";
-    } else {
-      usernameEl.innerText = `👤 @${user.username || 'User #' + user.id}`;
+    let username = "";
+    let accountAge = 0;
 
-      // Estimate account age from user.id (approx)
-      const telegramEpoch = 1_000_000_000;
-      const currentId = user.id;
-      const estYear = Math.floor((currentId - telegramEpoch) / 15_000_000) + 2014;
-      const yearsOnTelegram = new Date().getFullYear() - estYear;
-      const rewardAmount = 50 + (yearsOnTelegram * 10);
-
-      ageEl.innerText = `📅 Estimated Telegram Usage: ${yearsOnTelegram}+ years`;
-      rewardMsg.innerText = `💰 Daily Reward: ${rewardAmount} $CR`;
-
-      // Check last claim time
-      const lastClaim = localStorage.getItem(`claim_${user.id}`);
-      const now = Date.now();
-
-      if (!lastClaim || now - lastClaim > 24 * 60 * 60 * 1000) {
-        claimBtn.disabled = false;
-        claimBtn.classList.remove("disabled");
-        claimBtn.addEventListener("click", () => {
-          localStorage.setItem(`claim_${user.id}`, Date.now());
-          rewardMsg.innerText = `✅ Claimed ${rewardAmount} $CR! Come back in 24 hours.`;
-          claimBtn.disabled = true;
-          claimBtn.classList.add("disabled");
-          cooldownText.innerText = "⏳ Cooldown active";
-        });
+    function init() {
+      const initData = telegram.initDataUnsafe;
+      username = initData?.user?.username || "guest";
+      const createdAt = initData?.user?.created_at;
+      
+      if (createdAt) {
+        const createdDate = new Date(createdAt * 1000);
+        const now = new Date();
+        const years = now.getFullYear() - createdDate.getFullYear();
+        accountAge = years;
+        const baseTokens = years * 1000;
+        updateBalance(baseTokens);
+        document.getElementById("greeting").innerText = `Hello @${username} 👋\nYou’ve been on Telegram for ${years} year(s)! You’ve earned ${baseTokens} $CRT.`;
       } else {
-        const timeLeft = 24 * 60 * 60 * 1000 - (now - lastClaim);
-        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-        const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        claimBtn.disabled = true;
-        claimBtn.classList.add("disabled");
-        cooldownText.innerText = `⏳ Next claim in ${hours}h ${mins}m`;
+        document.getElementById("greeting").innerText = `Hello 👋 You’re not logged in via Telegram.`;
+      }
+
+      const referralLink = `https://t.me/CR_Token_bot?start=${username}`;
+      document.getElementById("referralLink").innerText = referralLink;
+    }
+
+    function updateBalance(amount) {
+      balance += amount;
+      document.getElementById("balance").innerText = `Balance: ${balance} $CRT`;
+    }
+
+    function claimLogin() {
+      const lastClaim = localStorage.getItem("lastClaim");
+      const now = Date.now();
+      if (!lastClaim || now - lastClaim > 86400000) {
+        updateBalance(200);
+        localStorage.setItem("lastClaim", now);
+        alert("✅ You’ve claimed your daily login reward!");
+      } else {
+        alert("⏳ Come back in 24 hours to claim again!");
       }
     }
+
+    function startMining() {
+      document.getElementById("wheelContainer").style.display = "flex";
+    }
+
+    function spinWheel() {
+      if (spinsLeft <= 0) {
+        alert("No spins left today!");
+        return;
+      }
+
+      spinsLeft--;
+      document.getElementById("spinsLeft").innerText = spinsLeft;
+
+      const rewards = [50, 100, 200, 500, 0];
+      const result = rewards[Math.floor(Math.random() * rewards.length)];
+
+      updateBalance(result);
+      document.getElementById("spinResult").innerText = `You won ${result} $CRT!`;
+    }
+
+    window.onload = init;
   </script>
 </body>
 </html>
