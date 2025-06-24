@@ -108,7 +108,7 @@
       apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
       authDomain: "coinrush-token.firebaseapp.com",
       projectId: "coinrush-token",
-      storageBucket: "coinrush-token.firebasestorage.app",
+      storageBucket: "coinrush-token.appspot.com",
       messagingSenderId: "159731574189",
       appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
       measurementId: "G-ZCMGL2MX3L"
@@ -117,27 +117,32 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let userId = Telegram.WebApp?.initDataUnsafe?.user?.id || 'guest_' + Math.random().toString(36).substring(2);
-    let username = Telegram.WebApp?.initDataUnsafe?.user?.username || "Guest";
+    const userId = Telegram.WebApp?.initDataUnsafe?.user?.id || 'guest_' + Math.random().toString(36).substring(2);
+    const username = Telegram.WebApp?.initDataUnsafe?.user?.username || "Guest";
     document.getElementById('username').textContent = username;
 
     const userRef = doc(db, "users", userId);
 
     async function setupUser() {
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) {
-        const referrer = new URLSearchParams(window.location.search).get("start");
-        if (referrer && referrer !== userId) {
-          const refRef = doc(db, "users", referrer);
-          await updateDoc(refRef, { balance: increment(100) }).catch(() => {});
+      try {
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          const referrer = new URLSearchParams(window.location.search).get("start");
+          if (referrer && referrer !== userId) {
+            const refRef = doc(db, "users", referrer);
+            await updateDoc(refRef, { balance: increment(100) }).catch(() => {});
+          }
+          await setDoc(userRef, {
+            username,
+            balance: 0,
+            level: 1,
+            lastLogin: null,
+            dailyClicks: 0
+          });
         }
-        await setDoc(userRef, {
-          username,
-          balance: 0,
-          level: 1,
-          lastLogin: null,
-          dailyClicks: 0
-        });
+      } catch (err) {
+        alert("⚠️ Error setting up user. Check Firebase connection.");
+        console.error(err);
       }
     }
 
@@ -149,57 +154,77 @@
     }
 
     async function loadDashboard() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      document.getElementById("balance").textContent = `${data.balance} CRT`;
-      document.getElementById("level").textContent = `${data.level}`;
+      try {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        document.getElementById("balance").textContent = `${data.balance} CRT`;
+        document.getElementById("level").textContent = `${data.level}`;
+      } catch (err) {
+        alert("⚠️ Couldn't load dashboard.");
+        console.error(err);
+      }
     }
 
     async function dailyLogin() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      const last = data.lastLogin?.toDate?.() || new Date(0);
-      const now = new Date();
-      if ((now - last) > 86400000) {
-        await updateDoc(userRef, {
-          balance: increment(100),
-          lastLogin: serverTimestamp()
-        });
-        alert("🎉 You've earned 100 CRT!");
-      } else {
-        alert("⏳ Already claimed today's login reward!");
+      try {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        const last = data.lastLogin?.toDate?.() || new Date(0);
+        const now = new Date();
+        if ((now - last) > 86400000) {
+          await updateDoc(userRef, {
+            balance: increment(100),
+            lastLogin: serverTimestamp()
+          });
+          alert("🎉 You've earned 100 CRT!");
+        } else {
+          alert("⏳ Already claimed today's login reward!");
+        }
+        loadDashboard();
+      } catch (err) {
+        alert("⚠️ Error during daily login.");
+        console.error(err);
       }
-      loadDashboard();
     }
 
     async function mine() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      if (data.dailyClicks >= 10) {
-        alert("🚫 Daily mining limit reached (10 clicks)");
-        return;
+      try {
+        const snap = await getDoc(userRef);
+        const data = snap.data();
+        if (data.dailyClicks >= 10) {
+          alert("🚫 Daily mining limit reached (10 clicks)");
+          return;
+        }
+        await updateDoc(userRef, {
+          balance: increment(10),
+          dailyClicks: increment(1)
+        });
+        await updateLevel(data.balance + 10);
+        loadDashboard();
+      } catch (err) {
+        alert("⚠️ Error during mining.");
+        console.error(err);
       }
-      await updateDoc(userRef, {
-        balance: increment(10),
-        dailyClicks: increment(1)
-      });
-      await updateLevel(data.balance + 10);
-      loadDashboard();
     }
 
     async function loadLeaderboard() {
-      const querySnap = await getDocs(collection(db, "users"));
-      let users = [];
-      querySnap.forEach(doc => {
-        const d = doc.data();
-        users.push({ id: doc.id, username: d.username || "Guest", balance: d.balance || 0 });
-      });
-      users = users.sort((a, b) => b.balance - a.balance).slice(0, 10);
-      const lb = document.getElementById("leaderboard");
-      lb.innerHTML = "";
-      users.forEach((u, i) => {
-        lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
-      });
+      try {
+        const querySnap = await getDocs(collection(db, "users"));
+        let users = [];
+        querySnap.forEach(doc => {
+          const d = doc.data();
+          users.push({ id: doc.id, username: d.username || "Guest", balance: d.balance || 0 });
+        });
+        users = users.sort((a, b) => b.balance - a.balance).slice(0, 10);
+        const lb = document.getElementById("leaderboard");
+        lb.innerHTML = "";
+        users.forEach((u, i) => {
+          lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
+        });
+      } catch (err) {
+        alert("⚠️ Error loading leaderboard.");
+        console.error(err);
+      }
     }
 
     document.getElementById("mineBtn").onclick = mine;
