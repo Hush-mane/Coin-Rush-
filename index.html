@@ -1,88 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CoinRush Dashboard</title>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       background-color: #0d1117;
-      color: #c9d1d9;
-      font-family: 'Courier New', monospace;
+      color: #00ffcc;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
-      padding: 0;
     }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 30px;
-    }
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid #30363d;
+
+    #app {
+      width: 380px;
+      max-height: 580px;
+      background: rgba(0, 255, 153, 0.1);
+      border: 1px solid #00ffcc;
       border-radius: 12px;
       padding: 20px;
-      margin-top: 20px;
-      box-shadow: 0 0 20px rgba(0,255,0,0.1);
+      overflow-y: auto;
+      box-shadow: 0 0 20px #00ffcc44;
     }
+
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
     button {
+      width: 100%;
+      margin: 6px 0;
+      padding: 12px;
       background-color: #00ff99;
       border: none;
-      color: #0d1117;
-      padding: 12px 18px;
-      border-radius: 6px;
-      cursor: pointer;
+      border-radius: 8px;
+      color: #000;
       font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
     }
+
     button:hover {
-      background-color: #00cc77;
+      background-color: #33ffaa;
     }
-    .title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #39ff14;
-    }
-    #leaderboard li {
-      margin: 6px 0;
-      list-style: none;
-      font-size: 15px;
-    }
-    #referral-link {
-      background: none;
-      color: #00ff99;
-      border: 1px solid #00ff99;
-      padding: 8px 12px;
+
+    .leaderboard {
       margin-top: 10px;
-      display: inline-block;
-      border-radius: 6px;
-      cursor: pointer;
+    }
+
+    .leaderboard div {
+      margin: 4px 0;
+      font-size: 14px;
+      border-bottom: 1px dashed #00ffcc33;
+      padding: 4px 0;
+    }
+
+    .info-label {
+      font-weight: bold;
+      color: #00ffaa;
+    }
+
+    .ref-link {
+      word-break: break-all;
+      margin-top: 6px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="title">Welcome, <span id="username">Guest</span></div>
-      <p>Balance: <strong><span id="balance">Loading...</span> CRT</strong></p>
-      <p>Level: <strong><span id="level">1</span></strong></p>
-      <button onclick="mine()">🪙 Mine +10 CRT</button>
-      <br><br>
-      <button onclick="dailyLogin()">🎁 Daily Login</button>
-      <br><br>
-      <button id="referral-link" onclick="copyReferral()">Copy Referral Link</button>
+  <div id="app">
+    <h2>Welcome, <span id="username">Guest</span></h2>
+
+    <div class="section">
+      <div><span class="info-label">Balance:</span> <span id="balance">Loading...</span></div>
+      <div><span class="info-label">Level:</span> <span id="level">Loading...</span></div>
     </div>
 
-    <div class="card">
-      <div class="title">🏆 Leaderboard</div>
-      <ul id="leaderboard">Loading...</ul>
+    <div class="section">
+      <button id="mineBtn">⛏️ Mine +10 CRT</button>
+      <button id="dailyBtn">🎁 Daily Login +100 CRT</button>
+      <button id="refBtn">🔗 Copy Referral Link</button>
+    </div>
+
+    <div class="section leaderboard">
+      <h3>🏆 Leaderboard</h3>
+      <div id="leaderboard">Loading...</div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getFirestore, doc, setDoc, getDoc, updateDoc,
+      increment, serverTimestamp, getDocs, collection
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
@@ -97,95 +117,101 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let userId = "guest_" + Math.floor(Math.random() * 100000);
-    let username = "Guest";
-
-    if (window.Telegram.WebApp.initDataUnsafe?.user) {
-      const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-      userId = tgUser.id.toString();
-      username = tgUser.username || "Guest";
-    }
-
-    document.getElementById("username").innerText = "@" + username;
+    let userId = Telegram.WebApp?.initDataUnsafe?.user?.id || 'guest_' + Math.random().toString(36).substring(2);
+    let username = Telegram.WebApp?.initDataUnsafe?.user?.username || "Guest";
+    document.getElementById('username').textContent = username;
 
     const userRef = doc(db, "users", userId);
-    const referralParam = new URLSearchParams(window.location.search).get("ref");
 
-    async function initUser() {
-      const docSnap = await getDoc(userRef);
-      if (!docSnap.exists()) {
-        await setDoc(userRef, {
-          balance: 0,
-          lastLogin: Date.now(),
-          username: username
-        });
-        if (referralParam && referralParam !== userId) {
-          const refUser = doc(db, "users", referralParam);
-          await updateDoc(refUser, { balance: increment(100) });
+    async function setupUser() {
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        const referrer = new URLSearchParams(window.location.search).get("start");
+        if (referrer && referrer !== userId) {
+          const refRef = doc(db, "users", referrer);
+          await updateDoc(refRef, { balance: increment(100) }).catch(() => {});
         }
+        await setDoc(userRef, {
+          username,
+          balance: 0,
+          level: 1,
+          lastLogin: null,
+          dailyClicks: 0
+        });
       }
-      loadDashboard();
-      loadLeaderboard();
+    }
+
+    async function updateLevel(balance) {
+      let level = 1;
+      if (balance >= 1000) level = 2;
+      if (balance >= 100000) level = 3;
+      await updateDoc(userRef, { level });
     }
 
     async function loadDashboard() {
-      const docSnap = await getDoc(userRef);
-      const data = docSnap.data();
-      const bal = data.balance || 0;
-      document.getElementById("balance").innerText = bal;
-      document.getElementById("level").innerText = getLevel(bal);
-    }
-
-    function getLevel(bal) {
-      if (bal >= 100000) return 3;
-      if (bal >= 1000) return 2;
-      return 1;
-    }
-
-    async function mine() {
-      await updateDoc(userRef, { balance: increment(10) });
-      loadDashboard();
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      document.getElementById("balance").textContent = `${data.balance} CRT`;
+      document.getElementById("level").textContent = `${data.level}`;
     }
 
     async function dailyLogin() {
-      const docSnap = await getDoc(userRef);
-      const data = docSnap.data();
-      const now = Date.now();
-      const last = data.lastLogin || 0;
-      if (now - last >= 86400000) {
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      const last = data.lastLogin?.toDate?.() || new Date(0);
+      const now = new Date();
+      if ((now - last) > 86400000) {
         await updateDoc(userRef, {
           balance: increment(100),
-          lastLogin: now
+          lastLogin: serverTimestamp()
         });
-        alert("You earned 100 CRT for logging in today!");
+        alert("🎉 You've earned 100 CRT!");
       } else {
-        alert("Already claimed daily reward today.");
+        alert("⏳ Already claimed today's login reward!");
       }
       loadDashboard();
     }
 
-    function copyReferral() {
-      const link = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
-      navigator.clipboard.writeText(link);
-      alert("Referral link copied!");
+    async function mine() {
+      const snap = await getDoc(userRef);
+      const data = snap.data();
+      if (data.dailyClicks >= 10) {
+        alert("🚫 Daily mining limit reached (10 clicks)");
+        return;
+      }
+      await updateDoc(userRef, {
+        balance: increment(10),
+        dailyClicks: increment(1)
+      });
+      await updateLevel(data.balance + 10);
+      loadDashboard();
     }
 
     async function loadLeaderboard() {
-      const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(10));
-      const querySnapshot = await getDocs(q);
-      const list = document.getElementById("leaderboard");
-      list.innerHTML = "";
-      let i = 1;
-      querySnapshot.forEach(doc => {
+      const querySnap = await getDocs(collection(db, "users"));
+      let users = [];
+      querySnap.forEach(doc => {
         const d = doc.data();
-        const uname = d.username || "Guest";
-        const li = document.createElement("li");
-        li.textContent = `#${i++} - @${uname} - ${d.balance || 0} CRT`;
-        list.appendChild(li);
+        users.push({ id: doc.id, username: d.username || "Guest", balance: d.balance || 0 });
+      });
+      users = users.sort((a, b) => b.balance - a.balance).slice(0, 10);
+      const lb = document.getElementById("leaderboard");
+      lb.innerHTML = "";
+      users.forEach((u, i) => {
+        lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
       });
     }
 
-    initUser();
+    document.getElementById("mineBtn").onclick = mine;
+    document.getElementById("dailyBtn").onclick = dailyLogin;
+    document.getElementById("refBtn").onclick = () => {
+      const ref = `https://t.me/CoinRushApp?start=${userId}`;
+      navigator.clipboard.writeText(ref).then(() => alert("🔗 Referral link copied!"));
+    };
+
+    await setupUser();
+    await loadDashboard();
+    await loadLeaderboard();
   </script>
 </body>
 </html>
