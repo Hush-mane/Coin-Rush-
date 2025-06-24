@@ -1,117 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush | Mine $CRT</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CoinRush Mining</title>
   <style>
-    /* same dark theme as before */
-    :root {
-      --primary: #ffcc00;
-      --bg: #0f0f0f;
-      --card: #1a1a1a;
-      --text: #ffffff;
-    }
     body {
-      font-family: 'Orbitron',sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0e0e0e;
+      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding:20px;
-      min-height:100vh;
+      padding: 30px;
     }
-    header, .dashboard, button, .balance, .wallet, .ref-link { /* keep previous stylings */ }
-    header { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:1000px; margin-bottom:30px; }
-    .dashboard { background:var(--card); padding:30px; border-radius:16px; max-width:500px; width:100%; text-align:center; box-shadow:0 0 20px #00000044; }
-    button { background:var(--primary); color:#000; border:none; padding:14px 26px; font-weight:bold; border-radius:10px; cursor:pointer; margin:10px; transition:0.2s; }
-    button:hover { background:#ffe066; }
-    .ref-link { background:#222; color:#fff; padding:8px 12px; border-radius:8px; word-break:break-all; margin-top:10px; }
+    .logo {
+      width: 120px;
+      margin-bottom: 20px;
+    }
+    .dashboard {
+      background: #1b1b1b;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .balance {
+      font-size: 20px;
+      margin: 10px 0;
+      color: #00ffa2;
+    }
+    button {
+      background: #00ffa2;
+      color: #000;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .info {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #aaa;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo">
-      <img src="logo.PNG" alt="Logo" style="width:40px;height:40px;margin-right:10px;" />
-      <span style="font-size:1.5em;color:var(--primary);font-weight:bold;">CoinRush</span>
-    </div>
-    <div class="balance">Balance: <span id="balance">0</span> $CRT</div>
-  </header>
+
+  <img src="logo.PNG" alt="CoinRush Logo" class="logo"/>
   <div class="dashboard">
-    <h2>🚀 Mine $CRT Tokens</h2>
-    <p>Click to mine. Earn 10 $CRT per hit.</p>
-    <div class="wallet" id="wallet">Not connected</div>
-    <button id="connectBtn">Connect Wallet</button>
-    <button id="mineBtn" style="display:none;">Mine $CRT</button>
-    <div id="referral" style="display:none;">
-      <p>Your referral link:</p>
-      <div class="ref-link" id="refLink"></div>
-    </div>
+    <h1>CoinRush Mining</h1>
+    <div class="balance" id="balance">Loading balance...</div>
+    <button id="mineBtn">Mine +10 $CRT</button>
+    <div class="info" id="clickInfo">Clicks left today: ...</div>
+    <div class="info" id="cooldownMsg"></div>
   </div>
 
-  <!-- Web3Modal + providers -->
-  <script src="https://unpkg.com/web3@latest/dist/web3.min.js"></script>
-  <script src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
-  <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <script>
-    const providerOptions = {
-      walletconnect: {
-        package: window.WalletConnectProvider,
-        options: { infuraId: "8043bb2cf99347b1bfadfb233c5325c0" }
-      }
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
+      authDomain: "coinrush-token.firebaseapp.com",
+      projectId: "coinrush-token",
+      storageBucket: "coinrush-token.firebasestorage.app",
+      messagingSenderId: "159731574189",
+      appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
+      measurementId: "G-ZCMGL2MX3L"
     };
-    const web3Modal = new window.Web3Modal.default({
-      cacheProvider: false,
-      providerOptions
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const userId = "guest123"; // Replace with Telegram ID or wallet address later
+    const userRef = doc(db, "users", userId);
+
+    const mineBtn = document.getElementById("mineBtn");
+    const balanceEl = document.getElementById("balance");
+    const clickInfo = document.getElementById("clickInfo");
+    const cooldownMsg = document.getElementById("cooldownMsg");
+
+    let isCooldown = false;
+    let clickLimit = 10;
+
+    function getTodayDate() {
+      return new Date().toISOString().split("T")[0];
+    }
+
+    async function loadUser() {
+      const docSnap = await getDoc(userRef);
+      const today = getTodayDate();
+
+      if (!docSnap.exists()) {
+        await setDoc(userRef, {
+          balance: 0,
+          clickCount: 0,
+          lastMinedDate: today
+        });
+        return { balance: 0, clickCount: 0, lastMinedDate: today };
+      }
+
+      let data = docSnap.data();
+
+      // Reset clicks if new day
+      if (data.lastMinedDate !== today) {
+        await updateDoc(userRef, {
+          clickCount: 0,
+          lastMinedDate: today
+        });
+        data.clickCount = 0;
+        data.lastMinedDate = today;
+      }
+
+      return data;
+    }
+
+    function startCooldown() {
+      isCooldown = true;
+      mineBtn.disabled = true;
+      cooldownMsg.innerText = "Cooldown: 3s";
+      let countdown = 3;
+      const interval = setInterval(() => {
+        countdown--;
+        cooldownMsg.innerText = `Cooldown: ${countdown}s`;
+        if (countdown <= 0) {
+          clearInterval(interval);
+          isCooldown = false;
+          cooldownMsg.innerText = "";
+          mineBtn.disabled = false;
+        }
+      }, 1000);
+    }
+
+    async function updateUI() {
+      const data = await loadUser();
+      balanceEl.innerText = `${data.balance} $CRT`;
+      clickInfo.innerText = `Clicks left today: ${clickLimit - data.clickCount}`;
+      mineBtn.disabled = isCooldown || data.clickCount >= clickLimit;
+    }
+
+    mineBtn.addEventListener("click", async () => {
+      if (isCooldown) return;
+
+      const docSnap = await getDoc(userRef);
+      let data = docSnap.data();
+
+      if (data.clickCount >= clickLimit) {
+        mineBtn.disabled = true;
+        clickInfo.innerText = "Daily limit reached!";
+        return;
+      }
+
+      const newBalance = data.balance + 10;
+      const newClickCount = data.clickCount + 1;
+
+      await updateDoc(userRef, {
+        balance: newBalance,
+        clickCount: newClickCount
+      });
+
+      startCooldown();
+      updateUI();
     });
 
-    let provider, web3, userAddress;
-    let balance = parseInt(localStorage.getItem("crt_balance")) || 0;
-
-    function updateBalanceDisplay() {
-      document.getElementById("balance").textContent = balance;
-      localStorage.setItem("crt_balance", balance);
-    }
-    function shorten(addr) {
-      return addr.slice(0,6) + "..." + addr.slice(-4);
-    }
-    async function connectWallet() {
-      try {
-        provider = await web3Modal.connect();
-        web3 = new Web3(provider);
-        const accounts = await web3.eth.getAccounts();
-        userAddress = accounts[0];
-        document.getElementById("wallet").textContent = "Connected: " + shorten(userAddress);
-        document.getElementById("connectBtn").style.display = "none";
-        document.getElementById("mineBtn").style.display = "inline-block";
-        
-        const refAddr = new URLSearchParams(window.location.search).get("ref");
-        if (refAddr && refAddr !== userAddress && !localStorage.getItem("ref_user")) {
-          localStorage.setItem("ref_user", refAddr);
-          balance += 20;
-          updateBalanceDisplay();
-          alert("Referral bonus: +20 $CRT!");
-        }
-
-        const refDiv = document.getElementById("referral");
-        document.getElementById("refLink").textContent = `${window.location.origin + window.location.pathname}?ref=${userAddress}`;
-        refDiv.style.display = "block";
-      } catch (err) {
-        console.error(err);
-        alert("Wallet login failed or cancelled.");
-      }
-    }
-
-    function mineTokens() {
-      balance += 10;
-      updateBalanceDisplay();
-      alert("You mined 10 $CRT!");
-    }
-
-    document.getElementById("connectBtn").addEventListener("click", connectWallet);
-    document.getElementById("mineBtn").addEventListener("click", mineTokens);
-    updateBalanceDisplay();
+    updateUI();
   </script>
 </body>
 </html>
