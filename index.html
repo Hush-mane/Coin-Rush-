@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush 🚀</title>
+  <title>CoinRush</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap">
   <style>
     body {
@@ -11,22 +11,20 @@
       font-family: 'Orbitron', sans-serif;
       background: radial-gradient(ellipse at center, #0a0f1c 0%, #000000 100%);
       color: #00ffcc;
-      overflow-x: hidden;
-    }
-    header {
-      text-align: center;
-      padding: 20px;
-      font-size: 1.5em;
-      color: #00ffcc;
     }
     .container {
       max-width: 500px;
-      margin: 0 auto;
+      margin: 40px auto;
       padding: 20px;
       background: rgba(0,255,204,0.05);
       border: 1px solid #00ffcc30;
       border-radius: 15px;
       box-shadow: 0 0 10px #00ffcc40;
+    }
+    .user {
+      text-align: center;
+      font-size: 1.3em;
+      margin-bottom: 20px;
     }
     .balance, .level, .referrals {
       margin: 10px 0;
@@ -46,7 +44,7 @@
       background-color: #00ffcc40;
     }
     .leaderboard {
-      margin-top: 20px;
+      margin-top: 30px;
     }
     .leaderboard h3 {
       text-align: center;
@@ -67,8 +65,8 @@
   </style>
 </head>
 <body>
-  <header>🚀 Welcome, loading...</header>
   <div class="container">
+    <div class="user">🚀 Welcome, <span id="username">Loading...</span></div>
     <div class="balance">Balance: <span id="balance">Loading...</span> $CRT</div>
     <div class="level">Level: <span id="level">Loading...</span></div>
     <div class="referrals">Referrals: <span id="referralCount">Loading...</span></div>
@@ -88,7 +86,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
       authDomain: "coinrush-token.firebaseapp.com",
@@ -102,7 +99,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Telegram Mini App integration
+    // Telegram integration
     let tg = window.Telegram?.WebApp;
     let userId, userName;
 
@@ -116,7 +113,7 @@
       userName = "Guest";
     }
 
-    document.querySelector("header").innerHTML = `🚀 Welcome, ${userName}!`;
+    document.getElementById("username").textContent = userName;
 
     const userDoc = doc(db, "users", userId);
     const params = new URLSearchParams(window.location.search);
@@ -124,7 +121,7 @@
 
     // Referral logic
     if (ref && ref !== userId) {
-      const refDoc = doc(db, "users", ref);
+      const refDoc = doc(db, "users", `tg_${ref.replace('@','')}`);
       getDoc(refDoc).then(async (snap) => {
         if (snap.exists()) {
           await updateDoc(refDoc, {
@@ -142,7 +139,10 @@
         await setDoc(userDoc, {
           balance: 0,
           referrals: 0,
+          username: userName,
         });
+      } else if (!snap.data().username && userName !== "Guest") {
+        await updateDoc(userDoc, { username: userName });
       }
     }
 
@@ -161,7 +161,7 @@
       else if (balance >= 100000) level = "3";
       document.getElementById("level").textContent = level;
 
-      const link = `${location.origin}${location.pathname}?ref=${userId}`;
+      const link = `https://hush-mane.github.io/Coin-Rush-/?ref=${userName}`;
       document.getElementById("refLink").href = link;
       document.getElementById("refLink").textContent = link;
     }
@@ -189,9 +189,10 @@
       const snap = await getDocs(q);
       const list = document.getElementById("leaderboardList");
       list.innerHTML = "";
-      snap.forEach((doc, index) => {
-        const d = doc.data();
-        list.innerHTML += `<li>#${index + 1} - ${doc.id.slice(-5)}... - ${d.balance} CRT</li>`;
+      snap.forEach((docSnap, index) => {
+        const d = docSnap.data();
+        const name = d.username || "Anon";
+        list.innerHTML += `<li>#${index + 1} - ${name} - ${d.balance} CRT</li>`;
       });
     }
 
@@ -207,7 +208,7 @@
       alert("🎉 You've received your 100 CRT daily login reward!");
     }
 
-    // Run all logic
+    // Init everything
     await initUser();
     await updateUI();
     await loadLeaderboard();
