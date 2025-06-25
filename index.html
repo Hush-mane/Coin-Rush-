@@ -1,163 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: white;
-    }
-    .app {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      justify-content: space-between;
-    }
-    .top-bar {
-      padding: 16px;
-      background-color: #1a1a1a;
-    }
-    .user {
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      color: #ddd;
-    }
-    .rocket-container {
-      text-align: center;
-      padding: 30px 0;
-    }
-    .rocket {
-      width: 120px;
-      cursor: pointer;
-    }
-    .tap-info {
-      margin-top: 10px;
-      color: #00ffcc;
-    }
-    .info-panel {
-      display: flex;
-      justify-content: space-around;
-      background: #1e1e1e;
-      padding: 15px;
-      margin: 20px;
-      border-radius: 8px;
-    }
-    .info-item label {
-      display: block;
-      font-size: 13px;
-      color: #aaa;
-    }
-    .info-item span {
-      font-size: 16px;
-      font-weight: bold;
-      color: #fff;
-    }
-    .nav-bar {
-      display: flex;
-      justify-content: space-around;
-      background: #1a1a1a;
-      padding: 12px 0;
-      border-top: 1px solid #333;
-    }
-    .nav-item {
-      font-size: 14px;
-      color: #888;
-      cursor: pointer;
-    }
-    .nav-item.active {
-      color: #00ff99;
-    }
-    .tab-content {
-      display: none;
-      text-align: center;
-      padding: 20px;
-      color: #bbb;
-    }
-    .tab-content.active {
-      display: block;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tap to Earn</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #0d0d0d;
+            border-radius: 15px;
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 20px;
+        }
+
+        .username {
+            color: #00ffcc;
+        }
+
+        .total-crt {
+            color: #00ffcc;
+        }
+
+        .rocket-icon {
+            width: 100px;
+            height: 100px;
+            /* Replace 'rocket.png' with an actual rocket image URL or local path */
+            background: url('https://via.placeholder.com/100?text=Rocket') no-repeat center;
+            background-size: contain;
+            margin: 0 auto 20px;
+        }
+
+        .tap-button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .tap-button:hover {
+            background-color: #444;
+        }
+
+        .progress-circle {
+            margin-top: 20px;
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 20px auto;
+            border-radius: 50%;
+            background: conic-gradient(#00ffcc 0% 60%, #333 60% 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mined-crt, .taps-used {
+            font-size: 14px;
+        }
+
+        .referral {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #00ffcc;
+        }
+
+        .bonus {
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <!-- Top Info -->
-    <div class="top-bar">
-      <div class="user">
-        <span>@username</span>
-        <span>CRT: <strong id="userCRT">0</strong></span>
-      </div>
+    <div class="container">
+        <header>
+            <span class="username">@username</span>
+            <span class="total-crt">1,200 CRT</span>
+        </header>
+        <main>
+            <div class="rocket-icon"></div>
+            <button class="tap-button">TAP TO EARN</button>
+            <div class="progress-circle">
+                <span class="mined-crt">You've mined <strong>3,250 CRT</strong></span>
+                <span class="taps-used">6 / 10 taps used</span>
+            </div>
+        </main>
+        <footer>
+            <div class="referral">
+                <span class="bonus">+100 CRT</span>
+                <span class="link">Referral Link</span>
+            </div>
+        </footer>
     </div>
+    <script>
+        let totalCRT = 1200;
+        let minedCRT = 3250;
+        let tapsUsed = 6;
+        const maxTaps = 10;
 
-    <!-- Tabs -->
-    <div class="tab-content active" id="mineTab">
-      <div class="rocket-container">
-        <img src="https://github.com/Hush-mane/Coin-Rush-/raw/main/rocket.png" alt="Rocket" class="rocket" onclick="tapRocket()" />
-        <div class="tap-info">Taps left: <span id="tapCount">10</span></div>
-      </div>
+        const totalCRTDisplay = document.querySelector('.total-crt');
+        const minedCRTDisplay = document.querySelector('.mined-crt strong');
+        const tapsUsedDisplay = document.querySelector('.taps-used');
+        const tapButton = document.querySelector('.tap-button');
 
-      <div class="info-panel">
-        <div class="info-item">
-          <label>Balance</label>
-          <span id="balance">0 CRT</span>
-        </div>
-        <div class="info-item">
-          <label>Today’s Earn</label>
-          <span id="dailyEarned">0</span>
-        </div>
-      </div>
-    </div>
+        totalCRTDisplay.textContent = `${totalCRT} CRT`;
+        minedCRTDisplay.textContent = `${minedCRT} CRT`;
+        tapsUsedDisplay.textContent = `${tapsUsed} / ${maxTaps} taps used`;
 
-    <div class="tab-content" id="earnTab">
-      <h3>Earn Tasks Coming Soon</h3>
-    </div>
-    <div class="tab-content" id="walletTab">
-      <h3>Wallet Page</h3>
-    </div>
-    <div class="tab-content" id="meTab">
-      <h3>Profile Section</h3>
-    </div>
+        tapButton.addEventListener('click', () => {
+            if (tapsUsed < maxTaps) {
+                tapsUsed++;
+                minedCRT += 50; // Add 50 CRT per tap (adjust as needed)
+                totalCRT += 50;
 
-    <!-- Navigation -->
-    <div class="nav-bar">
-      <div class="nav-item active" onclick="switchTab('mineTab', this)">Mine</div>
-      <div class="nav-item" onclick="switchTab('earnTab', this)">Earn</div>
-      <div class="nav-item" onclick="switchTab('walletTab', this)">Wallet</div>
-      <div class="nav-item" onclick="switchTab('meTab', this)">Me</div>
-    </div>
-  </div>
+                totalCRTDisplay.textContent = `${totalCRT} CRT`;
+                minedCRTDisplay.textContent = `${minedCRT} CRT`;
+                tapsUsedDisplay.textContent = `${tapsUsed} / ${maxTaps} taps used`;
 
-  <script>
-    let tapsLeft = 10;
-    let balance = 0;
-    let dailyEarned = 0;
-
-    function tapRocket() {
-      if (tapsLeft > 0) {
-        balance += 10;
-        dailyEarned += 10;
-        tapsLeft--;
-
-        document.getElementById("tapCount").textContent = tapsLeft;
-        document.getElementById("balance").textContent = balance + " CRT";
-        document.getElementById("dailyEarned").textContent = dailyEarned;
-        document.getElementById("userCRT").textContent = balance;
-      } else {
-        alert("🚀 You've used all 10 taps for now.");
-      }
-    }
-
-    function switchTab(tabId, element) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      element.classList.add('active');
-    }
-  </script>
+                if (tapsUsed === maxTaps) {
+                    tapButton.disabled = true;
+                    tapButton.style.backgroundColor = '#666';
+                }
+            }
+        });
+    </script>
 </body>
 </html>
+
+Check this out 
