@@ -2,115 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinRush Dashboard</title>
-  <style>
-    body {
-      margin: 0;
-      background: #0d1117;
-      font-family: 'Segoe UI', sans-serif;
-      color: #00ffcc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    #app {
-      width: 400px;
-      max-height: 600px;
-      background: rgba(0, 255, 153, 0.07);
-      border: 1px solid #00ffcc;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 0 15px #00ffcc88;
-      overflow-y: auto;
-    }
-
-    .logo {
-      display: block;
-      margin: 0 auto 10px;
-      height: 50px;
-    }
-
-    h2 {
-      text-align: center;
-      font-size: 20px;
-    }
-
-    .section {
-      margin-bottom: 20px;
-    }
-
-    button {
-      width: 100%;
-      margin: 5px 0;
-      padding: 12px;
-      background-color: #00ff99;
-      border: none;
-      border-radius: 8px;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #33ffaa;
-    }
-
-    .leaderboard div {
-      font-size: 14px;
-      margin-bottom: 5px;
-      border-bottom: 1px dashed #00ffcc55;
-      padding: 4px 0;
-    }
-
-    .ref-link {
-      font-size: 12px;
-      word-break: break-word;
-      margin-top: 5px;
-    }
-
-    .info-label {
-      font-weight: bold;
-      color: #00ffaa;
-    }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <img src="logo.PNG" alt="CoinRush Logo" class="logo" />
-    <h2>Welcome, <span id="username">Guest</span></h2>
-
-    <div class="section">
-      <div><span class="info-label">Balance:</span> <span id="balance">Loading...</span></div>
-      <div><span class="info-label">Level:</span> <span id="level">Loading...</span></div>
-    </div>
-
-    <div class="section">
-      <button id="mineBtn">⛏️ Mine +10 CRT</button>
-      <button id="dailyBtn">🎁 Daily Login +100 CRT</button>
-      <button id="refBtn">🔗 Copy Referral Link</button>
-    </div>
-
-    <div class="section">
-      <h3>🏆 Leaderboard</h3>
-      <div id="leaderboard">Loading...</div>
-    </div>
-  </div>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>CoinRush 🚀</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
   <script type="module">
+    // Firebase imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore, doc, setDoc, getDoc, updateDoc,
-      increment, serverTimestamp, getDocs, collection
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
       authDomain: "coinrush-token.firebaseapp.com",
+      databaseURL: "https://coinrush-token-default-rtdb.firebaseio.com",
       projectId: "coinrush-token",
-      storageBucket: "coinrush-token.appspot.com",
+      storageBucket: "coinrush-token.firebasestorage.app",
       messagingSenderId: "159731574189",
       appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
       measurementId: "G-ZCMGL2MX3L"
@@ -118,107 +24,149 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    Telegram.WebApp.ready();
+    let userId, balance = 0, tapsLeft = 10;
 
-    const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-    const userId = tgUser?.id?.toString() || 'guest_' + Math.random().toString(36).substring(2);
-    const username = tgUser?.username || "Guest";
-    document.getElementById("username").textContent = username;
+    const rocket = document.getElementById("rocket");
+    const balanceEl = document.getElementById("balance");
+    const tapsLeftEl = document.getElementById("tapsLeft");
+    const tapMessage = document.getElementById("tapMessage");
 
-    const userRef = doc(db, "users", userId);
-
-    async function setupUser() {
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) {
-        const referrer = new URLSearchParams(window.location.search).get("start");
-        if (referrer && referrer !== userId) {
-          const refRef = doc(db, "users", referrer);
-          await updateDoc(refRef, { balance: increment(100) }).catch(() => {});
-        }
-        await setDoc(userRef, {
-          username,
-          balance: 0,
-          level: 1,
-          lastLogin: null,
-          dailyClicks: 0
-        });
-      }
+    function updateUI() {
+      balanceEl.textContent = balance;
+      tapsLeftEl.textContent = tapsLeft;
     }
 
-    async function updateLevel(balance) {
-      let level = 1;
-      if (balance >= 1000) level = 2;
-      if (balance >= 100000) level = 3;
-      await updateDoc(userRef, { level });
+    function showTab(tabId, button) {
+      document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+      document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      button.classList.add("active");
     }
+    window.showTab = showTab;
 
-    async function loadDashboard() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      document.getElementById("balance").textContent = `${data.balance} CRT`;
-      document.getElementById("level").textContent = `${data.level}`;
-    }
-
-    async function dailyLogin() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      const last = data.lastLogin?.toDate?.() || new Date(0);
+    function getTodayKey() {
       const now = new Date();
-      if ((now - last) > 86400000) {
-        await updateDoc(userRef, {
-          balance: increment(100),
-          lastLogin: serverTimestamp()
-        });
-        alert("✅ Daily reward claimed!");
-      } else {
-        alert("⏳ Already claimed today!");
-      }
-      loadDashboard();
+      return `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
     }
 
-    async function mine() {
-      const snap = await getDoc(userRef);
-      const data = snap.data();
-      if (data.dailyClicks >= 10) {
-        alert("⛏️ Daily mining limit reached (10)");
+    async function loadUserData(uid, username) {
+      const ref = doc(db, "users", uid);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        const data = snap.data();
+        const todayKey = getTodayKey();
+
+        balance = data.balance || 0;
+        const lastTapDay = data.lastTapDay || "";
+        tapsLeft = (lastTapDay === todayKey) ? (10 - (data.tapsToday || 0)) : 10;
+
+        updateUI();
+      } else {
+        await setDoc(ref, {
+          username: username || "Guest",
+          balance: 0,
+          tapsToday: 0,
+          lastTapDay: "",
+          createdAt: serverTimestamp()
+        });
+        balance = 0;
+        tapsLeft = 10;
+        updateUI();
+      }
+    }
+
+    rocket.addEventListener("click", async () => {
+      if (tapsLeft <= 0) {
+        tapMessage.textContent = "No taps left for today.";
         return;
       }
-      await updateDoc(userRef, {
-        balance: increment(10),
-        dailyClicks: increment(1)
-      });
-      await updateLevel(data.balance + 10);
-      loadDashboard();
-    }
 
-    async function loadLeaderboard() {
-      const querySnap = await getDocs(collection(db, "users"));
-      let users = [];
-      querySnap.forEach(doc => {
-        const d = doc.data();
-        users.push({ username: d.username || "Guest", balance: d.balance || 0 });
-      });
-      users.sort((a, b) => b.balance - a.balance);
-      const lb = document.getElementById("leaderboard");
-      lb.innerHTML = "";
-      users.slice(0, 10).forEach((u, i) => {
-        lb.innerHTML += `<div>#${i + 1}: ${u.username} — ${u.balance} CRT</div>`;
-      });
-    }
+      const ref = doc(db, "users", userId);
+      const snap = await getDoc(ref);
+      const data = snap.data();
+      const todayKey = getTodayKey();
 
-    document.getElementById("mineBtn").onclick = mine;
-    document.getElementById("dailyBtn").onclick = dailyLogin;
-    document.getElementById("refBtn").onclick = () => {
-      const refLink = `https://t.me/CR_Token_bot/CoinRushLive?start=${userId}`;
-      navigator.clipboard.writeText(refLink).then(() => {
-        alert("🔗 Referral link copied!");
-      });
-    };
+      let tapsToday = (data.lastTapDay === todayKey) ? (data.tapsToday || 0) : 0;
+      tapsToday++;
 
-    await setupUser();
-    await loadDashboard();
-    await loadLeaderboard();
+      const earned = 100;
+      balance += earned;
+      tapsLeft--;
+
+      await updateDoc(ref, {
+        balance: balance,
+        tapsToday: tapsToday,
+        lastTapDay: todayKey
+      });
+
+      updateUI();
+      tapMessage.textContent = `+${earned} CRT! Taps left today: ${tapsLeft}`;
+    });
+
+    signInAnonymously(auth).then(async (res) => {
+      userId = res.user.uid;
+
+      // Telegram username
+      let username = "Guest";
+      try {
+        const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+        if (tgUser && tgUser.username) {
+          username = tgUser.username;
+        }
+      } catch (e) {}
+
+      document.getElementById("username").textContent = "@" + username;
+      await loadUserData(userId, username);
+    });
   </script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
+    body { background: #0b0c10; color: #c5c6c7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header { padding: 10px 20px; display: flex; justify-content: space-between; background: #1f2833; border-bottom: 1px solid #45a29e; }
+    .main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; }
+    .rocket { width: 120px; height: 120px; margin-bottom: 20px; animation: float 2s ease-in-out infinite; cursor: pointer; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .balance { font-size: 18px; color: #66fcf1; }
+    .username { font-size: 14px; color: #45a29e; }
+    nav { display: flex; justify-content: space-around; background: #1f2833; border-top: 1px solid #45a29e; padding: 10px 0; }
+    nav button { background: none; border: none; color: #c5c6c7; font-size: 14px; cursor: pointer; }
+    nav button.active { color: #66fcf1; }
+    .tab { display: none; text-align: center; }
+    .tab.active { display: block; }
+    .message { margin-top: 10px; color: #66fcf1; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="username" id="username">@Guest</div>
+    <div class="balance">CRT: <span id="balance">0</span></div>
+  </header>
+
+  <div class="main">
+    <div id="mineTab" class="tab active">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e8/Animated_Rocket.gif" class="rocket" id="rocket" alt="Rocket" />
+      <div class="message" id="tapMessage">Taps left today: <span id="tapsLeft">10</span></div>
+    </div>
+
+    <div id="leaderboardTab" class="tab">
+      <h3>🏆 Leaderboard</h3>
+      <p>Coming soon...</p>
+    </div>
+
+    <div id="earnTab" class="tab">
+      <h3>🎁 Earn</h3>
+      <p>Tasks & Ads coming soon...</p>
+    </div>
+  </div>
+
+  <nav>
+    <button class="active" onclick="showTab('mineTab', this)">🚀 Mine</button>
+    <button onclick="showTab('leaderboardTab', this)">🏆 Leaderboard</button>
+    <button onclick="showTab('earnTab', this)">🎁 Earn</button>
+  </nav>
 </body>
 </html>
