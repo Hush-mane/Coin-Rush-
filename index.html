@@ -2,171 +2,136 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CoinRush 🚀</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
-  <script type="module">
-    // Firebase imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCcGHNRR8fhADXn06P9aFjMc80nU93cMSU",
-      authDomain: "coinrush-token.firebaseapp.com",
-      databaseURL: "https://coinrush-token-default-rtdb.firebaseio.com",
-      projectId: "coinrush-token",
-      storageBucket: "coinrush-token.firebasestorage.app",
-      messagingSenderId: "159731574189",
-      appId: "1:159731574189:web:b031a1e16cba09edb7ed24",
-      measurementId: "G-ZCMGL2MX3L"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    let userId, balance = 0, tapsLeft = 10;
-
-    const rocket = document.getElementById("rocket");
-    const balanceEl = document.getElementById("balance");
-    const tapsLeftEl = document.getElementById("tapsLeft");
-    const tapMessage = document.getElementById("tapMessage");
-
-    function updateUI() {
-      balanceEl.textContent = balance;
-      tapsLeftEl.textContent = tapsLeft;
-    }
-
-    function showTab(tabId, button) {
-      document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
-      document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
-      document.getElementById(tabId).classList.add("active");
-      button.classList.add("active");
-    }
-    window.showTab = showTab;
-
-    function getTodayKey() {
-      const now = new Date();
-      return `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
-    }
-
-    async function loadUserData(uid, username) {
-      const ref = doc(db, "users", uid);
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        const todayKey = getTodayKey();
-
-        balance = data.balance || 0;
-        const lastTapDay = data.lastTapDay || "";
-        tapsLeft = (lastTapDay === todayKey) ? (10 - (data.tapsToday || 0)) : 10;
-
-        updateUI();
-      } else {
-        await setDoc(ref, {
-          username: username || "Guest",
-          balance: 0,
-          tapsToday: 0,
-          lastTapDay: "",
-          createdAt: serverTimestamp()
-        });
-        balance = 0;
-        tapsLeft = 10;
-        updateUI();
-      }
-    }
-
-    rocket.addEventListener("click", async () => {
-      if (tapsLeft <= 0) {
-        tapMessage.textContent = "No taps left for today.";
-        return;
-      }
-
-      const ref = doc(db, "users", userId);
-      const snap = await getDoc(ref);
-      const data = snap.data();
-      const todayKey = getTodayKey();
-
-      let tapsToday = (data.lastTapDay === todayKey) ? (data.tapsToday || 0) : 0;
-      tapsToday++;
-
-      const earned = 100;
-      balance += earned;
-      tapsLeft--;
-
-      await updateDoc(ref, {
-        balance: balance,
-        tapsToday: tapsToday,
-        lastTapDay: todayKey
-      });
-
-      updateUI();
-      tapMessage.textContent = `+${earned} CRT! Taps left today: ${tapsLeft}`;
-    });
-
-    signInAnonymously(auth).then(async (res) => {
-      userId = res.user.uid;
-
-      // Telegram username
-      let username = "Guest";
-      try {
-        const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-        if (tgUser && tgUser.username) {
-          username = tgUser.username;
-        }
-      } catch (e) {}
-
-      document.getElementById("username").textContent = "@" + username;
-      await loadUserData(userId, username);
-    });
-  </script>
-
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
-    body { background: #0b0c10; color: #c5c6c7; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    header { padding: 10px 20px; display: flex; justify-content: space-between; background: #1f2833; border-bottom: 1px solid #45a29e; }
-    .main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; }
-    .rocket { width: 120px; height: 120px; margin-bottom: 20px; animation: float 2s ease-in-out infinite; cursor: pointer; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    .balance { font-size: 18px; color: #66fcf1; }
-    .username { font-size: 14px; color: #45a29e; }
-    nav { display: flex; justify-content: space-around; background: #1f2833; border-top: 1px solid #45a29e; padding: 10px 0; }
-    nav button { background: none; border: none; color: #c5c6c7; font-size: 14px; cursor: pointer; }
-    nav button.active { color: #66fcf1; }
-    .tab { display: none; text-align: center; }
-    .tab.active { display: block; }
-    .message { margin-top: 10px; color: #66fcf1; font-size: 14px; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #121212;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      justify-content: space-between;
+    }
+    .header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .crt {
+      font-size: 14px;
+      color: #00ff99;
+    }
+    .rocket-section {
+      position: relative;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .rocket {
+      width: 150px;
+      cursor: pointer;
+    }
+    .tap-overlay {
+      margin-top: 10px;
+    }
+    .stats {
+      padding: 20px;
+      display: flex;
+      justify-content: space-around;
+      background: #1e1e1e;
+      border-radius: 10px;
+      margin: 20px;
+    }
+    .stat label {
+      display: block;
+      font-size: 14px;
+      color: #999;
+    }
+    .stat span {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      background-color: #1a1a1a;
+      padding: 12px 0;
+      border-top: 1px solid #333;
+    }
+    .nav-item {
+      color: #888;
+      font-size: 14px;
+    }
+    .nav-item.active {
+      color: #00ff99;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="username" id="username">@Guest</div>
-    <div class="balance">CRT: <span id="balance">0</span></div>
-  </header>
-
-  <div class="main">
-    <div id="mineTab" class="tab active">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e8/Animated_Rocket.gif" class="rocket" id="rocket" alt="Rocket" />
-      <div class="message" id="tapMessage">Taps left today: <span id="tapsLeft">10</span></div>
+  <div id="app">
+    <div class="header">
+      <div class="user-info">
+        <span>@username</span>
+        <span class="crt">CRT: <strong>0.00</strong></span>
+      </div>
     </div>
 
-    <div id="leaderboardTab" class="tab">
-      <h3>🏆 Leaderboard</h3>
-      <p>Coming soon...</p>
+    <div class="rocket-section">
+      <img src="https://i.ibb.co/3z2P6L0/rocket.png" alt="Rocket" class="rocket" onclick="tapRocket()" />
+      <div class="tap-overlay">
+        <p>Taps left: <span id="tapCount">10</span></p>
+      </div>
     </div>
 
-    <div id="earnTab" class="tab">
-      <h3>🎁 Earn</h3>
-      <p>Tasks & Ads coming soon...</p>
+    <div class="stats">
+      <div class="stat">
+        <label>Balance</label>
+        <span id="balance">0.00 CRT</span>
+      </div>
+      <div class="stat">
+        <label>Today’s Earn</label>
+        <span id="dailyEarned">0.00</span>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active">Mine</div>
+      <div class="nav-item">Earn</div>
+      <div class="nav-item">Wallet</div>
+      <div class="nav-item">Me</div>
     </div>
   </div>
 
-  <nav>
-    <button class="active" onclick="showTab('mineTab', this)">🚀 Mine</button>
-    <button onclick="showTab('leaderboardTab', this)">🏆 Leaderboard</button>
-    <button onclick="showTab('earnTab', this)">🎁 Earn</button>
-  </nav>
+  <script>
+    let tapsLeft = 10;
+    let balance = 0;
+    let dailyEarned = 0;
+
+    function tapRocket() {
+      if (tapsLeft > 0) {
+        balance += 0.05;
+        dailyEarned += 0.05;
+        tapsLeft -= 1;
+
+        document.getElementById("tapCount").textContent = tapsLeft;
+        document.getElementById("balance").textContent = balance.toFixed(2) + " CRT";
+        document.getElementById("dailyEarned").textContent = dailyEarned.toFixed(2);
+      } else {
+        alert("You've used all your taps for now! 🚀");
+      }
+    }
+  </script>
 </body>
 </html>
