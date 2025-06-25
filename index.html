@@ -67,46 +67,67 @@
     .nav-item {
       font-size: 14px;
       color: #888;
+      cursor: pointer;
     }
     .nav-item.active {
       color: #00ff99;
+    }
+    .tab-content {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #bbb;
+    }
+    .tab-content.active {
+      display: block;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <!-- Top User Info -->
+    <!-- Top Info -->
     <div class="top-bar">
       <div class="user">
         <span>@username</span>
-        <span>CRT: <strong id="userCRT">0.00</strong></span>
+        <span>CRT: <strong id="userCRT">0</strong></span>
       </div>
     </div>
 
-    <!-- Rocket Tap Section -->
-    <div class="rocket-container">
-      <img src="assets/images/rocket.png" alt="Rocket" class="rocket" onclick="tapRocket()" />
-      <div class="tap-info">Taps left: <span id="tapCount">10</span></div>
+    <!-- Tabs -->
+    <div class="tab-content active" id="mineTab">
+      <div class="rocket-container">
+        <img src="https://github.com/Hush-mane/Coin-Rush-/raw/main/rocket.png" alt="Rocket" class="rocket" onclick="tapRocket()" />
+        <div class="tap-info">Taps left: <span id="tapCount">10</span></div>
+      </div>
+
+      <div class="info-panel">
+        <div class="info-item">
+          <label>Balance</label>
+          <span id="balance">0 CRT</span>
+        </div>
+        <div class="info-item">
+          <label>Today’s Earn</label>
+          <span id="dailyEarned">0</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Info Display -->
-    <div class="info-panel">
-      <div class="info-item">
-        <label>Balance</label>
-        <span id="balance">0.00 CRT</span>
-      </div>
-      <div class="info-item">
-        <label>Today’s Earn</label>
-        <span id="dailyEarned">0.00</span>
-      </div>
+    <div class="tab-content" id="earnTab">
+      <h3>Earn Tasks Coming Soon</h3>
+    </div>
+    <div class="tab-content" id="walletTab">
+      <h3>Wallet Page</h3>
+    </div>
+    <div class="tab-content" id="meTab">
+      <h3>Profile Section</h3>
     </div>
 
-    <!-- Bottom Navigation -->
+    <!-- Navigation -->
     <div class="nav-bar">
-      <div class="nav-item active">Mine</div>
-      <div class="nav-item">Earn</div>
-      <div class="nav-item">Wallet</div>
-      <div class="nav-item">Me</div>
+      <div class="nav-item active" onclick="switchTab('mineTab', this)">Mine</div>
+      <div class="nav-item" onclick="switchTab('earnTab', this)">Earn</div>
+      <div class="nav-item" onclick="switchTab('walletTab', this)">Wallet</div>
+      <div class="nav-item" onclick="switchTab('meTab', this)">Me</div>
     </div>
   </div>
 
@@ -117,17 +138,25 @@
 
     function tapRocket() {
       if (tapsLeft > 0) {
-        balance += 0.05;
-        dailyEarned += 0.05;
+        balance += 10;
+        dailyEarned += 10;
         tapsLeft--;
 
         document.getElementById("tapCount").textContent = tapsLeft;
-        document.getElementById("balance").textContent = balance.toFixed(2) + " CRT";
-        document.getElementById("dailyEarned").textContent = dailyEarned.toFixed(2);
-        document.getElementById("userCRT").textContent = balance.toFixed(2);
+        document.getElementById("balance").textContent = balance + " CRT";
+        document.getElementById("dailyEarned").textContent = dailyEarned;
+        document.getElementById("userCRT").textContent = balance;
       } else {
-        alert("🚀 No taps left for now!");
+        alert("🚀 You've used all 10 taps for now.");
       }
+    }
+
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
     }
   </script>
 </body>
